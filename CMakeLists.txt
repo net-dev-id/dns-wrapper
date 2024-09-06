@@ -91,17 +91,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 target_link_libraries(main PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
 #################################################################################
 
-message(STATUS "Fetching inotify-cpp...")
-FetchContent_Declare(
-    inotify_cpp
-    GIT_REPOSITORY https://github.com/erikzenker/inotify-cpp
-    GIT_SHALLOW ON
-)
-FetchContent_MakeAvailable(inotify_cpp)
-include_directories(${inotify_cpp_SOURCE_DIR}/src/include)
-#link_directories(${inotify_cpp_BUILD_DIR}/src)
-target_link_libraries(main PRIVATE inotify-filesystem-adapter)
-
 
 set_target_properties(
     ${LIBRARY_NAME} main

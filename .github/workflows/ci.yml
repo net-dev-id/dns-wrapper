@@ -14,28 +14,36 @@ jobs:
       matrix:
         toolchain:
           - linux-gcc
-          - macos-clang
-          - windows-msvc
 
         configuration:
           - Debug
 
         include:
           - toolchain: linux-gcc
-            os: ubuntu-latest
+            os: ubuntu-24.04
             compiler: gcc
 
-          - toolchain: macos-clang
-            os: macos-latest
-            compiler: clang
-
-          - toolchain: windows-msvc
-            os: windows-latest
-            compiler: msvc
-
     steps:
+    - name: Install dev dependencies
+      run: sudo apt-get install -y libboost-all-dev doxygen libclang-15-dev
+
     - name: Checkout Code
       uses: actions/checkout@v2
+
+    #- name: Build Boost
+    #  id: boost
+    #  uses: egor-tensin/build-boost@v1
+    #  with:
+    #    version: 1.86.0
+    #    libraries: chrono filesystem log mpi program_options system thread
+    #    platform: x64
+    #    configuration: Release
+
+    #- name: Show paths
+    #  run: |
+    #    printf 'Boost has been unpacked to: %s\n' '${{ steps.boost.outputs.root }}'
+    #    printf 'Libraries can be found here: %s\n' '${{ steps.boost.outputs.librarydir }}'
+    #  shell: bash
 
     - name: Configure (${{ matrix.configuration }})
       run: cmake -S . -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
