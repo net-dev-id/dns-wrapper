@@ -1,7 +1,7 @@
 /*
  * This file contains definitions made in CMakeLists.txt
  * that we want available in the source code.
- * In the source code, include "exampleConfig.h" (no .in suffix).
+ * In the source code, include "version.h" (no .in suffix).
  * This header file will be generated, and filled with the
  * right definition values. Change the namings as you wish,
  * but make sure they match up with whats in CMakeLists.txt.
@@ -10,3 +10,10 @@
 #define PROJECT_VERSION_MINOR @PROJECT_VERSION_MINOR@
 #define PROJECT_VERSION_PATCH @PROJECT_VERSION_PATCH@
 #define PROJECT_VERSION_TWEAK @PROJECT_VERSION_TWEAK@
+#define GIT_VERSION "@GIT_VERSION@"
+#define GIT_DATE "@GIT_DATE@"
+#define GIT_BRANCH "@GIT_BRANCH@"
+#define GIT_TAG "@GIT_TAG@"
+#define GIT_HASH "@GIT_HASH@"
+#define COMPILATION_ARCH "@COMPILATION_ARCH@"
+#define COMPILATION_CC "@COMPILATION_CC@"

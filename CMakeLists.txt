@@ -1,3 +1,18 @@
+# 
+# Created Date: Wednesday, August 14th 2024, 1:30:30 pm
+# Author: Neeraj Jakhar
+# -----
+# Last Modified: Saturday, 31st August 2024 8:18:34 am
+# Modified By: Neeraj Jakhar
+# -----
+# Copyright (c) 2024 Neeraj Jakhar
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# -----
+
+
 # This file specifies how the project should be built, using CMake.
 # If you are unfamiliar with CMake, don't worry about all the details.
 # The sections you might want to edit are marked as such, and
@@ -10,15 +25,14 @@ cmake_minimum_required(VERSION 3.14)
 # Set project name, version and laguages here. (change as needed)
 # Version numbers are available by including "exampleConfig.h" in
 # the source. See exampleConfig.h.in for some more details.
-project(CPP_BOILERPLATE VERSION 1.2.3.4 LANGUAGES CXX)
-
+project(dns_wrapper VERSION 0.0.0.1 LANGUAGES C CXX)
 
 # Options: Things you can set via commandline options to cmake (e.g. -DENABLE_LTO=[ON|OFF])
 option(ENABLE_WARNINGS_SETTINGS "Allow target_set_warnings to add flags and defines.
-                                 Set this to OFF if you want to provide your own warning parameters." ON)
+                                 Set this to OFF if you want to provide your own warning parameters."    ON)
 option(ENABLE_LTO "Enable link time optimization" ON)
 option(ENABLE_DOCTESTS "Include tests in the library. Setting this to OFF will remove all doctest related code.
-                        Tests in tests/*.cpp will still be enabled." ON)
+                        Tests in tests/*.cpp will still be enabled."    ON)
 
 # Include stuff. No change needed.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
@@ -27,8 +41,9 @@ include(Colors)
 include(CTest)
 include(Doctest)
 include(Documentation)
+include(FetchContent)
 include(LTO)
-include(Misc)
+include(Version)
 include(Warnings)
 
 # Check for LTO support.
@@ -37,19 +52,15 @@ find_lto(CXX)
 # --------------------------------------------------------------------------------
 #                         Locate files (change as needed).
 # --------------------------------------------------------------------------------
-set(SOURCES          # All .cpp files in src/
-    src/example.cpp
-)
-set(TESTFILES        # All .cpp files in tests/
-    tests/main.cpp
-)
-set(LIBRARY_NAME engine)  # Default name for the library built from src/*.cpp (change if you wish)
+file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/bookkeeping/*.cpp src/dns/*.cpp src/rule/*.cpp)
+file(GLOB_RECURSE TESTFILES tests/*.cpp)
 
-# --------------------------------------------------------------------------------
-#                            Build! (Change as needed)
-# --------------------------------------------------------------------------------
-# Compile all sources into a library.
-add_library(${LIBRARY_NAME} OBJECT ${SOURCES})
+if(UNIX)
+    file(GLOB_RECURSE SOURCES_OS src/unix/*.cpp src/unix/*.c)
+endif(UNIX)
+
+set(LIBRARY_NAME engine) # Default name for the library built from src/*.cpp (change if you wish)
+add_library(${LIBRARY_NAME} OBJECT ${SOURCES} ${SOURCES_OS})
 
 # Lib needs its header files, and users of the library must also see these (PUBLIC). (No change needed)
 target_include_directories(${LIBRARY_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
@@ -57,25 +68,79 @@ target_include_directories(${LIBRARY_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 # There's also (probably) doctests within the library, so we need to see this as well.
 target_link_libraries(${LIBRARY_NAME} PUBLIC doctest)
 
+
 # Set the compile options you want (change as needed).
 target_set_warnings(${LIBRARY_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 # target_compile_options(${LIBRARY_NAME} ... )  # For setting manually.
 
 # Add an executable for the file app/main.cpp.
 # If you add more executables, copy these lines accordingly.
-add_executable(main app/main.cpp)   # Name of exec. and location of file.
-target_link_libraries(main PRIVATE ${LIBRARY_NAME})  # Link the executable to library (if it uses it).
+add_executable(main app/main.cpp) # Name of exec. and location of file.
+target_link_libraries(main PRIVATE ${LIBRARY_NAME}) # Link the executable to library (if it uses it).
 target_set_warnings(main ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
-target_enable_lto(main optimized)  # enable link-time-optimization if available for non-debug configurations
+target_enable_lto(main optimized) # enable link-time-optimization if available for non-debug configurations
 
-# Set the properties you require, e.g. what C++ standard to use. Here applied to library and main (change as needed).
+################################################################################
+## BOOST ##
+###########
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+find_package(Boost CONFIG)
+include_directories(${Boost_INCLUDE_DIRS})
+target_link_libraries(main PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
+#################################################################################
+
+message(STATUS "Fetching inotify-cpp...")
+FetchContent_Declare(
+    inotify_cpp
+    GIT_REPOSITORY https://github.com/erikzenker/inotify-cpp
+    GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(inotify_cpp)
+include_directories(${inotify_cpp_SOURCE_DIR}/src/include)
+#link_directories(${inotify_cpp_BUILD_DIR}/src)
+target_link_libraries(main PRIVATE inotify-filesystem-adapter)
+
+
 set_target_properties(
     ${LIBRARY_NAME} main
-      PROPERTIES
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED YES
-        CXX_EXTENSIONS NO
+    PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
 )
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set up tests (see tests/CMakeLists.txt).
 add_subdirectory(tests)
+
+message(STATUS "")
+message(STATUS "")
+message(STATUS "${PROJECT_NAME} configuration summary:")
+message(STATUS "")
+message(STATUS "  CMake build type ................ : ${CMAKE_BUILD_TYPE}")
+message(STATUS "  Build shared libs  .............. : ${BUILD_SHARED_LIBS}")
+message(STATUS "  Build static libs  .............. : ${BUILD_STATIC_LIBS}")
+message(STATUS "  Build example  .................. : ${BUILD_EXAMPLE}")
+message(STATUS "  Build test ...................... : ${BUILD_TEST}")
+message(STATUS "  Build c++ standard .............. : ${CMAKE_CXX_STANDARD}")
+message(STATUS "  Build with boost::filesystem .... : ${USE_BOOST_FILESYSTEM}")
+message(STATUS "")
+message(STATUS " Dependencies:")
+message(STATUS "  Boost version.................... : ${Boost_VERSION}")
+message(STATUS "  Boost root....................... : ${Boost_DIR}")
+message(STATUS "")
+message(STATUS " Git Information")
+message(STATUS "   - Branch: ${GIT_BRANCH}")
+message(STATUS "   - Architecture: ${COMPILATION_ARCH}")
+message(STATUS "   - Version: ${GIT_VERSION}")
+message(STATUS "   - Tag: ${GIT_TAG}")
+message(STATUS "   - Hash: ${GIT_HASH}")
+message(STATUS "   - Commit date: ${GIT_DATE}")
+message(STATUS "   - Compiler: ${COMPILATION_CC}")
+message(STATUS "")
