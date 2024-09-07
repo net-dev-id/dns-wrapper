@@ -34,7 +34,7 @@ Example:
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Debug -S. -Bbuild
 make -C build
-./build/main --config-file config/config.ini
+./build/dns-wrapper --config-file config/config.ini
 make test      # Makes and runs the tests.
 make coverage  # Generate a coverage report.
 make doc       # Generate html documentation.
