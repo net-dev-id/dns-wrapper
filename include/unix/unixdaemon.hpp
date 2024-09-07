@@ -19,5 +19,5 @@ protected:
 
 private:
   void signalHandler(boost::system::error_code, int);
-  void closeFds(long max_fd, int spare1, int spare2, int spare3);
+  void closeFds();
 };
