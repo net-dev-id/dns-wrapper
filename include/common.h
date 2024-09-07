@@ -1,16 +1,9 @@
 /*
- * Created Date: Thursday, August 22nd 2024, 2:41:54 am
- * Author: Neeraj Jakhar
- * -----
- * Last Modified: Thursday, 29th August 2024 2:24:24 am
- * Modified By: Neeraj Jakhar
- * -----
  * Copyright (c) 2024 Neeraj Jakhar
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * -----
  */
 
 #pragma once
@@ -31,4 +24,5 @@
 #define EC_MISC 5
 #define EC_SIGNAL 6
 #define EC_BADCOMMANDLINE 7
+#define EC_FORK 8
 #define EC_INIT_OFFSET 10
