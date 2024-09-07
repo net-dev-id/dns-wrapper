@@ -1,18 +1,10 @@
 /*
- * Created Date: Thursday, August 22nd 2024, 2:48:33 am
- * Author: Neeraj Jakhar
- * -----
- * Last Modified: Thursday, 5th September 2024 4:38:50 pm
- * Modified By: Neeraj Jakhar
- * -----
  * Copyright (c) 2024 Neeraj Jakhar
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * -----
  */
-
 
 #include "log.hpp"
 #include "config.hpp"

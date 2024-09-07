@@ -1,16 +1,9 @@
 /*
- * Created Date: Wednesday, August 21st 2024, 6:34:44 pm
- * Author: Neeraj Jakhar
- * -----
- * Last Modified: Monday, 26th August 2024 11:41:15 pm
- * Modified By: Neeraj Jakhar
- * -----
  * Copyright (c) 2024 Neeraj Jakhar
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * -----
  */
 
 #include <boost/property_tree/ini_parser.hpp>

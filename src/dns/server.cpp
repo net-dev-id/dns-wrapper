@@ -1,16 +1,9 @@
 /*
- * Created Date: Thursday, August 22nd 2024, 11:23:50 am
- * Author: Neeraj Jakhar
- * -----
- * Last Modified: Friday, 6th September 2024 5:45:37 pm
- * Modified By: Neeraj Jakhar
- * -----
  * Copyright (c) 2024 Neeraj Jakhar
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * -----
  */
 
 #include "dns/server.hpp"

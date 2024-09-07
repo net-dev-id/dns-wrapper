@@ -1,16 +1,9 @@
 /*
- * Created Date: Monday, August 26th 2024, 10:17:24 am
- * Author: Neeraj Jakhar
- * -----
- * Last Modified: Tuesday, 3rd September 2024 12:12:49 am
- * Modified By: Neeraj Jakhar
- * -----
  * Copyright (c) 2024 Neeraj Jakhar
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * -----
  */
 
 #pragma once

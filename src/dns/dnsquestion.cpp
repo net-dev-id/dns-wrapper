@@ -1,16 +1,9 @@
 /*
- * Created Date: Monday, August 26th 2024, 10:24:42 am
- * Author: Neeraj Jakhar
- * -----
- * Last Modified: Friday, 6th September 2024 9:25:49 am
- * Modified By: Neeraj Jakhar
- * -----
  * Copyright (c) 2024 Neeraj Jakhar
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * -----
  */
 
 #include "dns/dnsquestion.hpp"

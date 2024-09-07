@@ -1,16 +1,9 @@
 /*
- * Created Date: Sunday, September 1st 2024, 10:44:14 pm
- * Author: Neeraj Jakhar
- * -----
- * Last Modified: Monday, 2nd September 2024 12:25:53 am
- * Modified By: Neeraj Jakhar
- * -----
  * Copyright (c) 2024 Neeraj Jakhar
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * -----
  */
 
 #include "tp/sha256.hpp"
