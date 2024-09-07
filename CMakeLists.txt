@@ -1,16 +1,10 @@
 # 
-# Created Date: Wednesday, August 14th 2024, 1:30:30 pm
-# Author: Neeraj Jakhar
-# -----
-# Last Modified: Saturday, 31st August 2024 8:18:34 am
-# Modified By: Neeraj Jakhar
-# -----
 # Copyright (c) 2024 Neeraj Jakhar
 # 
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# -----
+
 
 
 # This file specifies how the project should be built, using CMake.
@@ -75,10 +69,10 @@ target_set_warnings(${LIBRARY_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Add an executable for the file app/main.cpp.
 # If you add more executables, copy these lines accordingly.
-add_executable(main app/main.cpp) # Name of exec. and location of file.
-target_link_libraries(main PRIVATE ${LIBRARY_NAME}) # Link the executable to library (if it uses it).
-target_set_warnings(main ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
-target_enable_lto(main optimized) # enable link-time-optimization if available for non-debug configurations
+add_executable(dns-wrapper app/main.cpp) # Name of exec. and location of file.
+target_link_libraries(dns-wrapper PRIVATE ${LIBRARY_NAME}) # Link the executable to library (if it uses it).
+target_set_warnings(dns-wrapper ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
+target_enable_lto(dns-wrapper optimized) # enable link-time-optimization if available for non-debug configurations
 
 ################################################################################
 ## BOOST ##
@@ -88,12 +82,12 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost CONFIG)
 include_directories(${Boost_INCLUDE_DIRS})
-target_link_libraries(main PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
+target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
 #################################################################################
 
 
 set_target_properties(
-    ${LIBRARY_NAME} main
+    ${LIBRARY_NAME} dns-wrapper
     PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED YES
