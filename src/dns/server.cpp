@@ -261,7 +261,7 @@ void DnsServer::updateRedirectResponse(DnsPacket &packet) {
   });
 }
 
-void DnsServer::updateErrorResponse(DnsPacket &packet, int errCode) {
+void DnsServer::updateErrorResponse(DnsPacket &packet, const uint8_t& errCode) {
   packet.SetResponseCode(errCode);
   packet.SetAsQueryResponse();
   packet.SetAsAuthoritativeAnswer(true);

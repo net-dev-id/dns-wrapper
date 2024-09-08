@@ -19,36 +19,29 @@ class Daemon {
 public:
   Daemon();
   virtual ~Daemon() {
-    LTRACE << "Removing pid file" << std::endl;
-    removePid();
-
     if (lockOwned) {
       LTRACE << "Removing owning process lock" << std::endl;
       boost::interprocess::named_mutex::remove(DAEMON_NAME);
     }
   }
 
-  void ParseArgs(int argc, char *argv[]);
   bool IsAlreadyRunning();
   int Run();
+  void Initialize();
+  int Start();
 
-protected:
-  virtual void platformInit(void) = 0;
-  void savePid(void);
-  void removePid(void);
+  virtual void platformInit() = 0;
   virtual void forkAndSetupDaemon(void) = 0;
-  virtual void signalHandler(boost::system::error_code, int) = 0;
 
 private:
   bool lockOwned = false;
   boost::interprocess::named_mutex executionLock;
 
-  bool pidFileCreated = false;
   int childPid = -1;
 
   std::string userName;
-  ConfigReader configReader;
 
 protected:
+  ConfigReader configReader;
   boost::asio::io_context ioContext;
 };

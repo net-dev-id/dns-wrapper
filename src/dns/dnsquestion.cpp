@@ -123,7 +123,7 @@ int DnsQuestion::Validate(PacketType pt) const {
 
 int DnsQuestion::WriteLabel(const char *in, BytePacketBuffer *bpb) const {
   uint16_t pos = bpb->pos++;
-  int len = 0;
+  uint8_t len = 0;
 
   for (const char *c = in; *c; c++) {
     if (*c == '.') {

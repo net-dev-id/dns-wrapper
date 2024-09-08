@@ -42,7 +42,7 @@ public:
     // int forwardall;
     int flags;
     std::time_t time;
-    uint32_t forwardTimestamp;
+    std::time_t forwardTimestamp;
     unsigned char hash[HASH_SIZE];
     bool fromTimedOut;
     PeerRequestRecord *next;

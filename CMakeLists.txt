@@ -25,17 +25,16 @@ project(dns_wrapper VERSION 0.0.0.1 LANGUAGES C CXX)
 option(ENABLE_WARNINGS_SETTINGS "Allow target_set_warnings to add flags and defines.
                                  Set this to OFF if you want to provide your own warning parameters."    ON)
 option(ENABLE_LTO "Enable link time optimization" ON)
-option(ENABLE_DOCTESTS "Include tests in the library. Setting this to OFF will remove all doctest related code.
-                        Tests in tests/*.cpp will still be enabled."    ON)
+#option(ENABLE_DOCTESTS "Include tests in the library. Setting this to OFF will remove all doctest related code.
+#                        Tests in tests/*.cpp will still be enabled."    ON)
 
 # Include stuff. No change needed.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 include(ConfigSafeGuards)
 include(Colors)
 include(CTest)
-include(Doctest)
+#include(Doctest)
 include(Documentation)
-include(FetchContent)
 include(LTO)
 include(Version)
 include(Warnings)
@@ -49,9 +48,13 @@ find_lto(CXX)
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/bookkeeping/*.cpp src/dns/*.cpp src/rule/*.cpp)
 file(GLOB_RECURSE TESTFILES tests/*.cpp)
 
-if(UNIX)
-    file(GLOB_RECURSE SOURCES_OS src/unix/*.cpp src/unix/*.c)
-endif(UNIX)
+if(WIN32)
+  message(STATUS "Detected Windows")
+  file(GLOB_RECURSE SOURCES_OS src/win32/*.cpp)
+elseif(UNIX)
+  message(STATUS "Detected UNIX")
+  file(GLOB_RECURSE SOURCES_OS src/unix/*.cpp src/unix/*.c)
+endif(WIN32)
 
 set(LIBRARY_NAME engine) # Default name for the library built from src/*.cpp (change if you wish)
 add_library(${LIBRARY_NAME} OBJECT ${SOURCES} ${SOURCES_OS})
@@ -80,9 +83,15 @@ target_enable_lto(dns-wrapper optimized) # enable link-time-optimization if avai
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost CONFIG)
-include_directories(${Boost_INCLUDE_DIRS})
+if(WIN32)
+  include_directories(C:\\DevTools\\boost\\include\\boost-1_86)
+  link_directories(C:\\DevTools\\boost\\lib)
+else()
+  find_package(Boost CONFIG)
+  include_directories(${Boost_INCLUDE_DIRS})
+endif()
 target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
+
 #################################################################################
 
 
@@ -99,8 +108,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(NOT WIN32)
 # Set up tests (see tests/CMakeLists.txt).
 add_subdirectory(tests)
+endif(NOT WIN32)
 
 message(STATUS "")
 message(STATUS "")

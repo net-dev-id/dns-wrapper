@@ -15,7 +15,41 @@
 #include <boost/asio/signal_set.hpp>
 #include <unistd.h>
 
-void UnixDaemon::platformInit() {}
+void UnixDaemon::platformInit() {
+  boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);
+  signals.async_wait([&](boost::system::error_code ec, int signo) {
+    LERROR << "Signal received" << std::endl;
+    this->signalHandler(ec, signo);
+  });
+}
+
+void UnixDaemon::savePid(void) {
+    const pid_t pid = getpid();
+    std::ofstream pidFile(configReader.pidFile);
+    if (!pidFile) {
+        LWARNING << "Unable to write PID to file. PID: " << pid << std::endl;
+        return;
+    }
+
+    pidFile << getpid();
+    pidFile.close();
+    LINFO << "PID file: " << configReader.pidFile << " written.";
+    pidFileCreated = true;
+}
+
+void UnixDaemon::removePid(void) {
+    if (!pidFileCreated) {
+        return;
+    }
+
+    if (std::filesystem::remove(configReader.pidFile)) {
+        LINFO << "PID file: " << configReader.pidFile << " removed." << std::endl;
+    }
+    else {
+        LWARNING << "Deleting of PID file: " << configReader.pidFile
+            << " not successful." << std::endl;
+    }
+}
 
 void UnixDaemon::forkAndSetupDaemon() {
   if (!Args::Get()->daemonMode) {
@@ -47,6 +81,7 @@ void UnixDaemon::forkAndSetupDaemon() {
     _exit(EC_GOOD);
   }
 
+  savePid();
   closeFds();
 }
 

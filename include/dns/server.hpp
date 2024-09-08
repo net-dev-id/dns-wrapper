@@ -45,7 +45,7 @@ private:
   void resolve(DnsPacket &packet, const udp::endpoint &endpoint, bool ipv4);
   void sendPacket(const DnsPacket &packet, const udp::endpoint &endpoint,
                   bool ipv4);
-  void updateErrorResponse(DnsPacket &packet, int errCode);
+  void updateErrorResponse(DnsPacket &packet, const uint8_t &errCode);
   void updateRedirectResponse(DnsPacket &packet);
 
   void receive4();

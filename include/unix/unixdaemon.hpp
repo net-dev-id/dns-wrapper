@@ -10,14 +10,24 @@
 
 class UnixDaemon : public Daemon {
 public:
-  UnixDaemon() {}
-  virtual ~UnixDaemon() {}
+  UnixDaemon() : pidFileCreated(false) {}
+  virtual ~UnixDaemon() {
+    LTRACE << "Removing pid file" << std::endl;
+    removePid();
+  }
 
-protected:
-  virtual void platformInit(void);
+  int Run(int argc, char* argv[]);
+
+private:
+  void savePid(void);
+  void removePid(void);
+  virtual void platformInit();
   virtual void forkAndSetupDaemon(void);
 
 private:
   void signalHandler(boost::system::error_code, int);
   void closeFds();
+
+private:
+  bool pidFileCreated;
 };
