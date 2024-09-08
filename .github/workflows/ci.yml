@@ -13,8 +13,9 @@ jobs:
     - uses: ilammy/msvc-dev-cmd@v1.4.1
     - name: Build with MS VC++
       run: |
+           mkdir build
            #cmake --build build --config Debug
-           cmake -G "Ninja" -DCMAKE_BUILD_TYPE:STRING="Debug" 
+           cmake -G "Ninja" -Bbuild -S. -DCMAKE_BUILD_TYPE:STRING="Debug" 
            #-DCMAKE_INSTALL_PREFIX:PATH="C:\Users\ncd\git\dns-wrapper\out\install\x64-Debug" 
            #-DCMAKE_C_COMPILER:FILEPATH="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.40.33807/bin/Hostx64/x64/cl.exe" 
            #-DCMAKE_CXX_COMPILER:FILEPATH="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.40.33807/bin/Hostx64/x64/cl.exe"   
