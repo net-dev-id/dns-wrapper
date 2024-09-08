@@ -126,7 +126,7 @@ enum PacketType {
 
 struct BytePacketBuffer {
   std::array<uint8_t, MAX_PACKET_SZ> buf{};
-  uint16_t pos{0};
+  size_t pos{0};
   size_t size{0};
 };
 

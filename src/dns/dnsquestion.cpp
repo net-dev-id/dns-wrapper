@@ -28,7 +28,7 @@
 
 int DnsQuestion::ReadLabel(BytePacketBuffer *bpb, char *storage) {
   int jumps = 0;
-  uint16_t pos = 0;
+  size_t pos = 0;
 
   Start = bpb->pos;
   int size = 0;

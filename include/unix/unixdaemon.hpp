@@ -16,8 +16,6 @@ public:
     removePid();
   }
 
-  int Run(int argc, char* argv[]);
-
 private:
   void savePid(void);
   void removePid(void);

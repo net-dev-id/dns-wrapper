@@ -33,6 +33,9 @@ public:
   virtual void platformInit() = 0;
   virtual void forkAndSetupDaemon(void) = 0;
 
+protected:
+  virtual void signalHandler(boost::system::error_code, int) = 0;
+
 private:
   bool lockOwned = false;
   boost::interprocess::named_mutex executionLock;

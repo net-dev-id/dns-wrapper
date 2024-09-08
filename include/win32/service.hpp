@@ -8,4 +8,4 @@
 
 #pragma once
 
-int ServiceMain(int argc, char** argv);
+int ServiceMain(int argc, char **argv);

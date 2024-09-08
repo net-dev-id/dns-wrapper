@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -19,8 +19,6 @@
 #include <boost/property_tree/ini_parser.hpp>
 #include <csignal>
 #include <exception>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <ostream>
 #include <stdexcept>
@@ -61,6 +59,11 @@ void Daemon::Initialize() {
 int Daemon::Start() {
   try {
     DnsServer dnsServer(ioContext, configReader.dnsPort, &configReader);
+    boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);
+    signals.async_wait([&](boost::system::error_code ec, int signo) {
+      LERROR << "Signal received" << std::endl;
+      this->signalHandler(ec, signo);
+    });
     ioContext.notify_fork(boost::asio::io_context::fork_prepare);
     forkAndSetupDaemon();
     ioContext.notify_fork(boost::asio::io_context::fork_child);

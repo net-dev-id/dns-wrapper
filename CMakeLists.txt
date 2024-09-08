@@ -25,15 +25,15 @@ project(dns_wrapper VERSION 0.0.0.1 LANGUAGES C CXX)
 option(ENABLE_WARNINGS_SETTINGS "Allow target_set_warnings to add flags and defines.
                                  Set this to OFF if you want to provide your own warning parameters."    ON)
 option(ENABLE_LTO "Enable link time optimization" ON)
-#option(ENABLE_DOCTESTS "Include tests in the library. Setting this to OFF will remove all doctest related code.
-#                        Tests in tests/*.cpp will still be enabled."    ON)
+option(ENABLE_DOCTESTS "Include tests in the library. Setting this to OFF will remove all doctest related code.
+                        Tests in tests/*.cpp will still be enabled."    ON)
 
 # Include stuff. No change needed.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 include(ConfigSafeGuards)
 include(Colors)
 include(CTest)
-#include(Doctest)
+include(Doctest)
 include(Documentation)
 include(LTO)
 include(Version)
@@ -50,10 +50,10 @@ file(GLOB_RECURSE TESTFILES tests/*.cpp)
 
 if(WIN32)
   message(STATUS "Detected Windows")
-  file(GLOB_RECURSE SOURCES_OS src/win32/*.cpp)
+  list(FILTER SOURCES EXCLUDE REGEX "src/unix")
 elseif(UNIX)
   message(STATUS "Detected UNIX")
-  file(GLOB_RECURSE SOURCES_OS src/unix/*.cpp src/unix/*.c)
+  list(FILTER SOURCES EXCLUDE REGEX "src/win32")
 endif(WIN32)
 
 set(LIBRARY_NAME engine) # Default name for the library built from src/*.cpp (change if you wish)

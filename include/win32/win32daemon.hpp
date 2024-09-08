@@ -12,12 +12,12 @@
 class Win32Daemon : public Daemon {
 public:
   Win32Daemon(HANDLE stopEvent) : stopEvent(stopEvent) {}
-  virtual ~Win32Daemon() {
-  }
+  virtual ~Win32Daemon() {}
 
 private:
   virtual void platformInit();
   virtual void forkAndSetupDaemon(void);
+  virtual void signalHandler(boost::system::error_code, int);
 
   HANDLE stopEvent;
 };

@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     return ServiceMain(argc, argv);
   }
 
-  Win32Daemon daemon;
+  Win32Daemon daemon(INVALID_HANDLE_VALUE);
 #else
   UnixDaemon daemon;
 #endif /* WIN32 */
