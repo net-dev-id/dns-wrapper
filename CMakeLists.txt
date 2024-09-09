@@ -80,9 +80,9 @@ target_enable_lto(dns-wrapper optimized) # enable link-time-optimization if avai
 ################################################################################
 ## BOOST ##
 ###########
-set(Boost_USE_STATIC_LIBS OFF)
+#set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
+#set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost CONFIG REQUIRED COMPONENTS system program_options log thread log_setup)
 include_directories(${Boost_INCLUDE_DIRS})
 #target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
