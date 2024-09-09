@@ -83,9 +83,9 @@ target_enable_lto(dns-wrapper optimized) # enable link-time-optimization if avai
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost CONFIG)
+find_package(Boost CONFIG REQUIRED COMPONENTS system program_options log thread log_setup)
 include_directories(${Boost_INCLUDE_DIRS})
-target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
+#target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
 
 #################################################################################
 
@@ -123,6 +123,12 @@ message(STATUS "")
 message(STATUS " Dependencies:")
 message(STATUS "  Boost version.................... : ${Boost_VERSION}")
 message(STATUS "  Boost root....................... : ${Boost_DIR}")
+message(STATUS "  Boost lib version................ : ${Boost_LIB_VERSION}")
+message(STATUS "  Boost root....................... : ${BOOST_ROOT}")
+message(STATUS "  Boost include dirs............... : ${Boost_INCLUDE_DIRS}")
+message(STATUS "  Boost library dirs............... : ${Boost_LIBRARY_DIRS}")
+message(STATUS "  Boost libraries.................. : ${Boost_LIBRARIES}")
+
 message(STATUS "")
 message(STATUS " Git Information")
 message(STATUS "   - Branch: ${GIT_BRANCH}")
