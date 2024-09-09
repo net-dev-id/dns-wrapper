@@ -6,8 +6,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "bookkeeping/peer.hpp"
 #include "log.hpp"
+#include "bookkeeping/peer.hpp"
 #include <cstdint>
 
 #define MAX_FWD_QUERIES 150

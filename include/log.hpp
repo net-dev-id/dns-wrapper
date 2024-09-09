@@ -8,9 +8,15 @@
 
 #pragma once
 
+#ifndef WIN32
 // As per
 // https://stackoverflow.com/questions/23137637/linker-error-while-linking-boost-log-tutorial-undefined-references
 #define BOOST_LOG_DYN_LINK 1
+#else
+// As per
+// https://github.com/microsoft/vcpkg/discussions/22762
+#define _WIN32_WINNT 0x0601
+#endif /* WIN32 */
 
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
