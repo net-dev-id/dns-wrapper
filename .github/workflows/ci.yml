@@ -24,9 +24,14 @@ jobs:
     - name: Build with MS VC++
       env:
         BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
-      run: |
+      run: >
            mkdir build
-           cmake -G "Ninja" -Bbuild -S. -DCMAKE_BUILD_TYPE:STRING="Debug" -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}\\include -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}\\lib
+           cmake -G "Ninja" -Bbuild -S. 
+            -DCMAKE_CXX_COMPILER=cl
+            -DCMAKE_C_COMPILER=cl
+            -DCMAKE_BUILD_TYPE:STRING="Debug" 
+            -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include
+            -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
            cmake --build build
 
     #- name: upload executable
