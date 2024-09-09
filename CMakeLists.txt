@@ -83,13 +83,8 @@ target_enable_lto(dns-wrapper optimized) # enable link-time-optimization if avai
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-if(WIN32)
-  include_directories(C:\\DevTools\\boost\\include\\boost-1_86)
-  link_directories(C:\\DevTools\\boost\\lib)
-else()
-  find_package(Boost CONFIG)
-  include_directories(${Boost_INCLUDE_DIRS})
-endif()
+find_package(Boost CONFIG)
+include_directories(${Boost_INCLUDE_DIRS})
 target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
 
 #################################################################################
