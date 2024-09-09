@@ -15,7 +15,7 @@
 #else
 // As per
 // https://github.com/microsoft/vcpkg/discussions/22762
-#define _WIN32_WINNT 0x0601
+#define _WIN32_WINNT 0x0602
 #endif /* WIN32 */
 
 #include <boost/log/expressions.hpp>
