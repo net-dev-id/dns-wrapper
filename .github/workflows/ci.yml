@@ -10,9 +10,9 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: ilammy/msvc-dev-cmd@v1.4.1
-      with:
-        vsversion: 2019
+    #- uses: ilammy/msvc-dev-cmd@v1.4.1
+    #  with:
+    #    vsversion: 2019
     - name: Install boost
       uses: MarkusJx/install-boost@v2.4.5
       id: install-boost
@@ -26,15 +26,8 @@ jobs:
         BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
       run: |
            mkdir build
-           #cmake --build build --config Debug
            cmake -G "Ninja" -Bbuild -S. -DCMAKE_BUILD_TYPE:STRING="Debug" -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}\\include -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}\\lib
            cmake --build build
-           #nmake -C build
-           #-DCMAKE_INSTALL_PREFIX:PATH="C:\Users\ncd\git\dns-wrapper\out\install\x64-Debug" 
-           #-DCMAKE_C_COMPILER:FILEPATH="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.40.33807/bin/Hostx64/x64/cl.exe" 
-           #-DCMAKE_CXX_COMPILER:FILEPATH="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.40.33807/bin/Hostx64/x64/cl.exe"   
-           #-DCMAKE_MAKE_PROGRAM="C:\PROGRAM FILES\MICROSOFT VISUAL STUDIO\2022\COMMUNITY\COMMON7\IDE\COMMONEXTENSIONS\MICROSOFT\CMAKE\Ninja\ninja.exe" 
-           #"C:\Users\ncd\git\dns-wrapper" 2>&1"
 
     #- name: upload executable
     #  uses: actions/upload-artifact@v2
