@@ -26,7 +26,7 @@ jobs:
       env:
         BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
       run: >
-        cmake -G "Ninja" -Bbuild -S. 
+        cmake -Bbuild -S. 
         -DCMAKE_CXX_COMPILER=cl
         -DCMAKE_C_COMPILER=cl
         -DCMAKE_BUILD_TYPE:STRING="Debug" 
