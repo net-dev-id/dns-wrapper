@@ -23,8 +23,8 @@ struct UpstreamServerInfo {
     uint32_t nosources;
     uint32_t timedouts;
     uint32_t failed;
-    uint32_t Latency;
-    uint32_t MMA;
+    std::time_t Latency;
+    std::time_t MMA;
   } stats;
   time_t forwardtime;
   int forwardcount;

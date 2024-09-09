@@ -62,7 +62,7 @@ public:
   void SetOpCode(uint8_t v) { hb3 |= ((v & 0b1111) << 3); }
   void SetAuthoritativeAnswer(bool v) { hb3 |= (((int)v) << 2); }
   void SetTruncatedMessage(bool v) { hb3 |= (((int)v) << 1); }
-  void SetRecursionDesired(bool v) { hb3 |= v; }
+  void SetRecursionDesired(bool v) { hb3 |= ((int)v); }
   void SetRecursionAvailable(bool v) { hb4 |= (((int)v) << 7); }
   void SetAuthenticData(bool v) { hb4 |= (((int)v) << 5); }
   void SetCheckingDisabled(bool v) { hb4 |= (((int)v) << 6); }

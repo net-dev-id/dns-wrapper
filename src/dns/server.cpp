@@ -6,12 +6,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "log.hpp"
 #include "dns/server.hpp"
 #include "bookkeeping/peer.hpp"
 #include "bookkeeping/server.hpp"
 #include "dns/dnscommon.hpp"
 #include "dns/dnspacket.hpp"
-#include "log.hpp"
 #include "tp/sha256.hpp"
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/asio/ip/address_v6.hpp>
@@ -143,7 +143,7 @@ bool DnsServer::processRequest(DnsPacket &packet, int &res,
 
   res = packet.Validate(PacketType::IncomingRequest);
   if (res != E_NOERROR) {
-    updateErrorResponse(packet, res);
+    updateErrorResponse(packet, (uint8_t)res);
     return sent;
   }
 
@@ -261,7 +261,7 @@ void DnsServer::updateRedirectResponse(DnsPacket &packet) {
   });
 }
 
-void DnsServer::updateErrorResponse(DnsPacket &packet, int errCode) {
+void DnsServer::updateErrorResponse(DnsPacket &packet, const uint8_t& errCode) {
   packet.SetResponseCode(errCode);
   packet.SetAsQueryResponse();
   packet.SetAsAuthoritativeAnswer(true);

@@ -13,9 +13,38 @@
 #include "log.hpp"
 #include "unix/unixutil.hpp"
 #include <boost/asio/signal_set.hpp>
+#include <filesystem>
+#include <fstream>
 #include <unistd.h>
 
 void UnixDaemon::platformInit() {}
+
+void UnixDaemon::savePid(void) {
+  const pid_t pid = getpid();
+  std::ofstream pidFile(configReader.pidFile);
+  if (!pidFile) {
+    LWARNING << "Unable to write PID to file. PID: " << pid << std::endl;
+    return;
+  }
+
+  pidFile << getpid();
+  pidFile.close();
+  LINFO << "PID file: " << configReader.pidFile << " written.";
+  pidFileCreated = true;
+}
+
+void UnixDaemon::removePid(void) {
+  if (!pidFileCreated) {
+    return;
+  }
+
+  if (std::filesystem::remove(configReader.pidFile)) {
+    LINFO << "PID file: " << configReader.pidFile << " removed." << std::endl;
+  } else {
+    LWARNING << "Deleting of PID file: " << configReader.pidFile
+             << " not successful." << std::endl;
+  }
+}
 
 void UnixDaemon::forkAndSetupDaemon() {
   if (!Args::Get()->daemonMode) {
@@ -47,6 +76,7 @@ void UnixDaemon::forkAndSetupDaemon() {
     _exit(EC_GOOD);
   }
 
+  savePid();
   closeFds();
 }
 
@@ -62,12 +92,12 @@ void UnixDaemon::closeFds() {
 
 void UnixDaemon::signalHandler(boost::system::error_code ec, int signalNo) {
   if (ec) {
-    LERROR << "Error during signal handling: " << ec << std::endl;
+    LERROR << "Error during signal handling: " << ec << " [" << signalNo << "]" << std::endl;
     exit(EC_SIGNAL);
   }
 
   if (signalNo == SIGTERM || signalNo == SIGINT) {
-    LERROR << "Received signal: " << signalNo << " exiting." << std::endl;
+    LINFO << "Received signal: " << signalNo << " exiting." << std::endl;
     LDEBUG << "Stopping ioContext" << std::endl;
     ioContext.stop();
   } else {

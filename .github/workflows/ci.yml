@@ -5,52 +5,63 @@ on:
   pull_request:
 
 jobs:
-  build-and-test:
-
+  build-and-test-windows:
+    name: run on windows
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    #- uses: ilammy/msvc-dev-cmd@v1.4.1
+    #  with:
+    #    vsversion: 2019
+    - name: Install boost
+      uses: MarkusJx/install-boost@v2.4.5
+      id: install-boost
+      with:
+        boost_version: 1.86.0
+        boost_install_dir: C:\\boost
+        platform_version: 2022
+        toolset: msvc
+    - run: mkdir build
+    - name: Configure cmake
+      env:
+        BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+      run: >
+        cmake -Bbuild -S. 
+        -DCMAKE_CXX_COMPILER=cl
+        -DCMAKE_C_COMPILER=cl
+        -DCMAKE_BUILD_TYPE:STRING="Debug" 
+        -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include
+        -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
+    - name: Build with MS VC++
+      run: cmake --build build
+    #- name: upload executable
+    #  uses: actions/upload-artifact@v2
+    #  with:
+    #    name: windows
+    #    path: |
+    #      spark.exe
+  build-and-test-linux:
     name: ${{ matrix.toolchain }}
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         toolchain:
           - linux-gcc
-
         configuration:
           - Debug
-
         include:
           - toolchain: linux-gcc
             os: ubuntu-24.04
             compiler: gcc
-
     steps:
     - name: Install dev dependencies
       run: sudo apt-get install -y libboost-all-dev doxygen libclang-15-dev
-
     - name: Checkout Code
       uses: actions/checkout@v2
-
-    #- name: Build Boost
-    #  id: boost
-    #  uses: egor-tensin/build-boost@v1
-    #  with:
-    #    version: 1.86.0
-    #    libraries: chrono filesystem log mpi program_options system thread
-    #    platform: x64
-    #    configuration: Release
-
-    #- name: Show paths
-    #  run: |
-    #    printf 'Boost has been unpacked to: %s\n' '${{ steps.boost.outputs.root }}'
-    #    printf 'Libraries can be found here: %s\n' '${{ steps.boost.outputs.librarydir }}'
-    #  shell: bash
-
     - name: Configure (${{ matrix.configuration }})
       run: cmake -S . -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
-
     - name: Build with ${{ matrix.compiler }}
       run: cmake --build build --config ${{ matrix.configuration }}
-
     - name: Test
       working-directory: build
       env:

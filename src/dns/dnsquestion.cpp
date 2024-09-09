@@ -28,7 +28,7 @@
 
 int DnsQuestion::ReadLabel(BytePacketBuffer *bpb, char *storage) {
   int jumps = 0;
-  uint16_t pos = 0;
+  size_t pos = 0;
 
   Start = bpb->pos;
   int size = 0;
@@ -113,7 +113,7 @@ int DnsQuestion::Validate(PacketType pt) const {
 
 #define WRITE_LENGTH(bpb)                                                      \
   {                                                                            \
-    uint16_t t = bpb->pos;                                                     \
+    std::size_t t = bpb->pos;                                                  \
     bpb->pos = pos;                                                            \
     WRITE_U8(bpb, len)                                                         \
     len = 0;                                                                   \
@@ -122,8 +122,8 @@ int DnsQuestion::Validate(PacketType pt) const {
   }
 
 int DnsQuestion::WriteLabel(const char *in, BytePacketBuffer *bpb) const {
-  uint16_t pos = bpb->pos++;
-  int len = 0;
+  std::size_t pos = bpb->pos++;
+  uint8_t len = 0;
 
   for (const char *c = in; *c; c++) {
     if (*c == '.') {
@@ -156,9 +156,9 @@ bool DnsQuestion::IsQuestionOfType(uint16_t type) { return Type == type; }
 int DnsQuestion::UpdateDigest(SHA256_CTX *ctx) const {
   LDEBUG << "Hashing values:: Name: " << Name << ":" << strlen(Name)
          << ", Type: " << Type << ", Class: " << Class << std::endl;
-  sha256_update(ctx, (const BYTE *)Name, strlen(Name));
-  sha256_update(ctx, (const BYTE *)&Type, 2);
-  sha256_update(ctx, (const BYTE *)&Class, 2);
+  sha256_update(ctx, (const _BYTE *)Name, strlen(Name));
+  sha256_update(ctx, (const _BYTE *)&Type, 2);
+  sha256_update(ctx, (const _BYTE *)&Class, 2);
   return 0;
 }
 

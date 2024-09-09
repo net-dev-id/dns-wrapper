@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -19,31 +19,17 @@
 #include <boost/property_tree/ini_parser.hpp>
 #include <csignal>
 #include <exception>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <ostream>
 #include <stdexcept>
-#include <unistd.h>
 
 Daemon::Daemon()
     : lockOwned(false),
-      executionLock(boost::interprocess::open_or_create, DAEMON_NAME),
-      pidFileCreated(false) {}
+      executionLock(boost::interprocess::open_or_create, DAEMON_NAME) {}
 
-void Daemon::ParseArgs(int argc, char *argv[]) {
-  Args::ExitCode code = Args::Init(argc, argv);
-  switch (code) {
-  case Args::ExitWithUnlock:
-    boost::interprocess::named_mutex::remove(DAEMON_NAME);
-    [[fallthrough]];
-  case Args::ExitWithNoError:
-    exit(EC_GOOD);
-  case Args::ExitWithError:
-    exit(EC_BADCOMMANDLINE);
-  case Args::NoExit:
-    break;
-  }
+int Daemon::Run() {
+  Initialize();
+  return Start();
 }
 
 bool Daemon::IsAlreadyRunning() {
@@ -62,15 +48,16 @@ static void logBasics(const std::string &userName) {
          << std::endl;
 }
 
-int Daemon::Run() {
-  try {
-    userName = GetUserName();
-    configReader.LoadConfiguration(Args::Get()->configFile);
-    platformInit();
-    Log::Init(configReader);
-    logBasics(userName);
-    savePid();
+void Daemon::Initialize() {
+  userName = GetUserName();
+  configReader.LoadConfiguration(Args::Get()->configFile);
+  Log::Init(configReader);
+  logBasics(userName);
+  platformInit();
+}
 
+int Daemon::Start() {
+  try {
     DnsServer dnsServer(ioContext, configReader.dnsPort, &configReader);
     boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);
     signals.async_wait([&](boost::system::error_code ec, int signo) {
@@ -99,32 +86,5 @@ int Daemon::Run() {
   } catch (...) {
     std::cerr << "Exception caught. Exiting!!" << std::endl;
     return EC_MISC;
-  }
-}
-
-void Daemon::savePid(void) {
-  const pid_t pid = getpid();
-  std::ofstream pidFile(configReader.pidFile);
-  if (!pidFile) {
-    LWARNING << "Unable to write PID to file. PID: " << pid << std::endl;
-    return;
-  }
-
-  pidFile << getpid();
-  pidFile.close();
-  LINFO << "PID file: " << configReader.pidFile << " written.";
-  pidFileCreated = true;
-}
-
-void Daemon::removePid(void) {
-  if (!pidFileCreated) {
-    return;
-  }
-
-  if (std::filesystem::remove(configReader.pidFile)) {
-    LINFO << "PID file: " << configReader.pidFile << " removed." << std::endl;
-  } else {
-    LWARNING << "Deleting of PID file: " << configReader.pidFile
-             << " not successful." << std::endl;
   }
 }

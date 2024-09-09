@@ -14,7 +14,7 @@
 #
 # For many purposes, you may not need to change anything about this file.
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15)
 
 # Set project name, version and laguages here. (change as needed)
 # Version numbers are available by including "exampleConfig.h" in
@@ -35,7 +35,6 @@ include(Colors)
 include(CTest)
 include(Doctest)
 include(Documentation)
-include(FetchContent)
 include(LTO)
 include(Version)
 include(Warnings)
@@ -49,9 +48,13 @@ find_lto(CXX)
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/bookkeeping/*.cpp src/dns/*.cpp src/rule/*.cpp)
 file(GLOB_RECURSE TESTFILES tests/*.cpp)
 
-if(UNIX)
-    file(GLOB_RECURSE SOURCES_OS src/unix/*.cpp src/unix/*.c)
-endif(UNIX)
+if(WIN32)
+  message(STATUS "Detected Windows")
+  list(FILTER SOURCES EXCLUDE REGEX "src/unix")
+elseif(UNIX)
+  message(STATUS "Detected UNIX")
+  list(FILTER SOURCES EXCLUDE REGEX "src/win32")
+endif(WIN32)
 
 set(LIBRARY_NAME engine) # Default name for the library built from src/*.cpp (change if you wish)
 add_library(${LIBRARY_NAME} OBJECT ${SOURCES} ${SOURCES_OS})
@@ -70,19 +73,22 @@ target_set_warnings(${LIBRARY_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 # Add an executable for the file app/main.cpp.
 # If you add more executables, copy these lines accordingly.
 add_executable(dns-wrapper app/main.cpp) # Name of exec. and location of file.
-target_link_libraries(dns-wrapper PRIVATE ${LIBRARY_NAME}) # Link the executable to library (if it uses it).
+target_link_libraries(dns-wrapper ${LIBRARY_NAME}) # Link the executable to library (if it uses it).
 target_set_warnings(dns-wrapper ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 target_enable_lto(dns-wrapper optimized) # enable link-time-optimization if available for non-debug configurations
 
 ################################################################################
 ## BOOST ##
 ###########
-set(Boost_USE_STATIC_LIBS OFF)
+#set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost CONFIG)
+#set(Boost_USE_STATIC_RUNTIME OFF)
+find_package(Boost CONFIG REQUIRED COMPONENTS system program_options log thread log_setup)
 include_directories(${Boost_INCLUDE_DIRS})
-target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
+target_link_libraries(dns-wrapper ${Boost_LIBRARIES})
+link_directories(${Boost_LIBRARY_DIRS})
+#target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
+
 #################################################################################
 
 
@@ -99,8 +105,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(NOT WIN32)
 # Set up tests (see tests/CMakeLists.txt).
 add_subdirectory(tests)
+endif(NOT WIN32)
 
 message(STATUS "")
 message(STATUS "")
@@ -117,6 +125,12 @@ message(STATUS "")
 message(STATUS " Dependencies:")
 message(STATUS "  Boost version.................... : ${Boost_VERSION}")
 message(STATUS "  Boost root....................... : ${Boost_DIR}")
+message(STATUS "  Boost lib version................ : ${Boost_LIB_VERSION}")
+message(STATUS "  Boost root....................... : ${BOOST_ROOT}")
+message(STATUS "  Boost include dirs............... : ${Boost_INCLUDE_DIRS}")
+message(STATUS "  Boost library dirs............... : ${Boost_LIBRARY_DIRS}")
+message(STATUS "  Boost libraries.................. : ${Boost_LIBRARIES}")
+
 message(STATUS "")
 message(STATUS " Git Information")
 message(STATUS "   - Branch: ${GIT_BRANCH}")
