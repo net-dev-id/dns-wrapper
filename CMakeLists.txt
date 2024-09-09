@@ -85,7 +85,7 @@ set(Boost_USE_MULTITHREADED ON)
 #set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost CONFIG REQUIRED COMPONENTS system program_options log thread log_setup)
 include_directories(${Boost_INCLUDE_DIRS})
-target_link_libraries(${ProjectMainName} ${Boost_LIBRARIES})
+target_link_libraries(dns-wrapper ${Boost_LIBRARIES})
 link_directories(${Boost_LIBRARY_DIRS})
 #target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
 
