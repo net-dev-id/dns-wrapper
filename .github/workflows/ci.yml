@@ -11,7 +11,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: ilammy/msvc-dev-cmd@v1.4.1
+    - name: Install boost
+      uses: MarkusJx/install-boost@v2.4.5
+      id: install-boost
+      with:
+        boost_version: 1.86.0
+        boost_install_dir: C:\boost
     - name: Build with MS VC++
+      env:
+        BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
       run: |
            mkdir build
            #cmake --build build --config Debug
