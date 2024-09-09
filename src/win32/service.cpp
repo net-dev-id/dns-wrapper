@@ -10,19 +10,18 @@
 #include "win32/win32daemon.hpp"
 #include <tchar.h>
 
-#define SERVICE_NAME _T("DNS Wrapper")
-
-SERVICE_STATUS_HANDLE g_ServiceStatusHandle = NULL;
-HANDLE g_StopEvent = INVALID_HANDLE_VALUE;
-DWORD g_CurrentState = 0;
+static SERVICE_STATUS_HANDLE g_ServiceStatusHandle = NULL;
+static HANDLE g_StopEvent = INVALID_HANDLE_VALUE;
+static DWORD g_CurrentState = 0;
 
 static void WINAPI ServiceExecutor(DWORD argc, LPTSTR *argv);
 static DWORD WINAPI HandlerEx(DWORD control, DWORD eventType, void *eventData,
                               void *context);
 static void ReportStatus(DWORD state);
 
-static int ServiceMain(int argc, char **argv) {
-  SERVICE_TABLE_ENTRY serviceTable[] = {{_T(""), &ServiceExecutor},
+int ServiceMain(int, char **) {
+  char* serviceName = (char*)(DAEMON_NAME);
+  SERVICE_TABLE_ENTRY serviceTable[] = {{serviceName, &ServiceExecutor},
                                         {NULL, NULL}};
 
   if (StartServiceCtrlDispatcher(serviceTable))
@@ -33,9 +32,9 @@ static int ServiceMain(int argc, char **argv) {
     return -2; // Other error
 }
 
-static void WINAPI ServiceExecutor(DWORD argc, LPTSTR *argv) {
+static void WINAPI ServiceExecutor(DWORD, LPTSTR *) {
   g_ServiceStatusHandle =
-      RegisterServiceCtrlHandlerEx(SERVICE_NAME, &HandlerEx, NULL);
+      RegisterServiceCtrlHandlerEx(DAEMON_NAME, &HandlerEx, NULL);
   ReportStatus(SERVICE_START_PENDING);
   g_StopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
@@ -48,8 +47,7 @@ static void WINAPI ServiceExecutor(DWORD argc, LPTSTR *argv) {
   ReportStatus(SERVICE_STOPPED);
 }
 
-static DWORD WINAPI HandlerEx(DWORD control, DWORD eventType, void *eventData,
-                              void *context) {
+static DWORD WINAPI HandlerEx(DWORD control, DWORD, void *, void *) {
   switch (control) {
   case SERVICE_CONTROL_SHUTDOWN:
   case SERVICE_CONTROL_STOP:
@@ -69,9 +67,9 @@ static void ReportStatus(DWORD state) {
   SERVICE_STATUS serviceStatus = {
       SERVICE_WIN32_OWN_PROCESS,
       g_CurrentState,
-      state == SERVICE_START_PENDING
+      state == (DWORD) SERVICE_START_PENDING
           ? 0
-          : SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN,
+          : (DWORD)(SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN),
       NO_ERROR,
       0,
       0,

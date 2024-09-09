@@ -29,7 +29,7 @@
 #define SIG1(x) (ROTRIGHT(x, 17) ^ ROTRIGHT(x, 19) ^ ((x) >> 10))
 
 /**************************** VARIABLES *****************************/
-static const WORD k[64] = {
+static const _WORD k[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
     0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
     0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
@@ -43,12 +43,12 @@ static const WORD k[64] = {
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
 /*********************** FUNCTION DEFINITIONS ***********************/
-static void sha256_transform(SHA256_CTX *ctx, const BYTE data[]) {
-  WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
+static void sha256_transform(SHA256_CTX *ctx, const _BYTE data[]) {
+  _WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
   for (i = 0, j = 0; i < 16; ++i, j += 4)
-    m[i] = (((WORD)data[j]) << 24) | (((WORD)data[j + 1]) << 16) |
-           (((WORD)data[j + 2]) << 8) | (((WORD)data[j + 3]));
+    m[i] = (((_WORD)data[j]) << 24) | (((_WORD)data[j + 1]) << 16) |
+           (((_WORD)data[j + 2]) << 8) | (((_WORD)data[j + 3]));
   for (; i < 64; ++i)
     m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
 
@@ -97,8 +97,8 @@ void sha256_init(SHA256_CTX *ctx) {
   ctx->state[7] = 0x5be0cd19;
 }
 
-void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len) {
-  WORD i;
+void sha256_update(SHA256_CTX *ctx, const _BYTE data[], size_t len) {
+  _WORD i;
 
   for (i = 0; i < len; ++i) {
     ctx->data[ctx->datalen] = data[i];
@@ -111,8 +111,8 @@ void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len) {
   }
 }
 
-void sha256_final(SHA256_CTX *ctx, BYTE hash[]) {
-  WORD i;
+void sha256_final(SHA256_CTX *ctx, _BYTE hash[]) {
+  _WORD i;
 
   i = ctx->datalen;
 
@@ -130,15 +130,15 @@ void sha256_final(SHA256_CTX *ctx, BYTE hash[]) {
   }
 
   /* Append to the padding the total message's length in bits and transform. */
-  ctx->bitlen += (BYTE) ctx->datalen * 8;
-  ctx->data[63] = (BYTE) (ctx->bitlen);
-  ctx->data[62] = (BYTE) (ctx->bitlen >> 8);
-  ctx->data[61] = (BYTE) (ctx->bitlen >> 16);
-  ctx->data[60] = (BYTE) (ctx->bitlen >> 24);
-  ctx->data[59] = (BYTE) (ctx->bitlen >> 32);
-  ctx->data[58] = (BYTE) (ctx->bitlen >> 40);
-  ctx->data[57] = (BYTE) (ctx->bitlen >> 48);
-  ctx->data[56] = (BYTE) (ctx->bitlen >> 56);
+  ctx->bitlen += (_BYTE) ctx->datalen * 8;
+  ctx->data[63] = (_BYTE) (ctx->bitlen);
+  ctx->data[62] = (_BYTE) (ctx->bitlen >> 8);
+  ctx->data[61] = (_BYTE) (ctx->bitlen >> 16);
+  ctx->data[60] = (_BYTE) (ctx->bitlen >> 24);
+  ctx->data[59] = (_BYTE) (ctx->bitlen >> 32);
+  ctx->data[58] = (_BYTE) (ctx->bitlen >> 40);
+  ctx->data[57] = (_BYTE) (ctx->bitlen >> 48);
+  ctx->data[56] = (_BYTE) (ctx->bitlen >> 56);
   sha256_transform(ctx, ctx->data);
 
   /* Since this implementation uses little endian byte ordering and SHA uses big

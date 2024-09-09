@@ -34,7 +34,7 @@ protected:
   int updateDigest(SHA256_CTX *) const;
 
 public:
-  uint16_t Start;
+  std::size_t Start;
   char Name[MAXDNAME];
   uint16_t Type;
   uint16_t Class;

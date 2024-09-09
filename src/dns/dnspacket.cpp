@@ -117,7 +117,7 @@ int DnsPacket::Hash(uint8_t *digest) const {
     question.UpdateDigest(&ctx);
   }
 
-  sha256_final(&ctx, (BYTE *)digest);
+  sha256_final(&ctx, (_BYTE *)digest);
 
   return 0;
 }

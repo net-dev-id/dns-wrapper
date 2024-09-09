@@ -143,7 +143,7 @@ bool DnsServer::processRequest(DnsPacket &packet, int &res,
 
   res = packet.Validate(PacketType::IncomingRequest);
   if (res != E_NOERROR) {
-    updateErrorResponse(packet, res);
+    updateErrorResponse(packet, (uint8_t)res);
     return sent;
   }
 

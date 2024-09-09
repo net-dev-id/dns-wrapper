@@ -9,9 +9,11 @@
 
 #include "win32/win32daemon.hpp"
 #include "args.hpp"
+#include "common.h"
 #include "log.hpp"
 #include <boost/asio/windows/object_handle.hpp>
 #include <boost/system/error_code.hpp>
+#include <signal.h>
 
 void Win32Daemon::platformInit() {
   using namespace boost::asio;
