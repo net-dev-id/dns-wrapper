@@ -16,6 +16,10 @@
 #include <signal.h>
 
 void Win32Daemon::platformInit() {
+  if (!Args::Get()->daemonMode || stopEvent == INVALID_HANDLE_VALUE) {
+    return;
+  }
+
   using namespace boost::asio;
   using namespace boost::system;
 
@@ -43,7 +47,7 @@ void Win32Daemon::signalHandler(boost::system::error_code ec, int signalNo) {
 
   if (signalNo == SIGTERM || signalNo == SIGINT) {
     LINFO << "Received signal: " << signalNo << " exiting." << std::endl;
-    if (Args::Get()->daemonMode && stopEvent == INVALID_HANDLE_VALUE) {
+    if (!Args::Get()->daemonMode || stopEvent == INVALID_HANDLE_VALUE) {
       LDEBUG << "Stopping ioContext" << std::endl;
       ioContext.stop();
     } else {

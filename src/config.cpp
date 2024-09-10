@@ -56,7 +56,9 @@ void ConfigReader::LoadConfiguration(const std::string &filePath) {
     logLevel = Log::ToLogLevel(tree.get<std::string>(
         "main.logLevel", Log::FromLogLevel(LogLevel::info)));
     dnsPort = tree.get<uint16_t>("main.dnsPort", DNS_PORT);
+#ifdef UNIX
     pidFile = tree.get<std::string>("main.pidFile", PID_FILE);
+#endif /* UNIX */
 
     std::string host = tree.get<std::string>("main.serverIp1", SERVER_IP_1);
     uint16_t port = tree.get<uint16_t>("main.serverPort1", DNS_PORT);
@@ -83,12 +85,14 @@ void ConfigReader::LoadConfiguration(const std::string &filePath) {
   }
 }
 
-void ConfigReader::SaveConfiguration(const std::string &filePath) {
+void ConfigReader::SaveConfiguration(const std::string &filePath) const {
   pt::ptree tree;
   tree.put("main.logToConsoleAlso", logToConsoleAlso);
   tree.put("main.logFile", logFile);
   tree.put("main.logLevel", Log::FromLogLevel(logLevel));
+#ifdef UNIX
   tree.put("main.pidFile", pidFile);
+#endif /* UNIX */
   tree.put("main.dnsPort", dnsPort);
   pt::write_ini(filePath, tree);
 }

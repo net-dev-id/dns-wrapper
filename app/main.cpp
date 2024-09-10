@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef WIN32
   if (Args::Get()->daemonMode) {
+    LINFO << "Starting windows service" << std::endl;
     return ServiceMain(argc, argv);
   }
 

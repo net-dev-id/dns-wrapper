@@ -8,9 +8,15 @@
 
 #pragma once
 
+#ifndef WIN32
 #define CONFIG_FILE_PATH "/etc/dnswrapper/config.ini"
 #define LOG_FILE "/var/log/dns-wrapper.log"
 #define PID_FILE "/var/run/dns-wrapper.pid"
+#else
+#define CONFIG_FILE_PATH "__WIN_REGISTRY__"
+#define LOG_FILE "c:\\temp\\dns-wrapper.log"
+#endif /* WIN32 */
+
 #define MAX_SERVERS 3
 #define SERVER_IP_1 "1.1.1.1"
 #define DNS_PORT 53

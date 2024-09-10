@@ -32,15 +32,18 @@ struct ConfigReader {
   bool logToConsoleAlso;
   std::string logFile;
   LogLevel logLevel;
+
+#ifdef UNIX
   std::string pidFile;
+#endif /* UNIX */
 
   uint16_t dnsPort;
   uint16_t tcpPort;
 
   std::vector<UpstreamServer> servers;
 
-  void LoadConfiguration(const std::string &filePath);
-  void SaveConfiguration(const std::string &filePath);
+  virtual void LoadConfiguration(const std::string &filePath);
+  virtual void SaveConfiguration(const std::string &filePath) const;
 
   static std::regex ipRegex4;
   static std::regex ipRegex6;
