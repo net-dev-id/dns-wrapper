@@ -24,7 +24,7 @@
 #include <stdexcept>
 
 Daemon::Daemon()
-    : lockOwned(false),
+    : configReader(nullptr), lockOwned(false),
       executionLock(boost::interprocess::open_or_create, DAEMON_NAME) {}
 
 int Daemon::Run() {
@@ -50,7 +50,7 @@ static void logBasics(const std::string &userName) {
 
 void Daemon::Initialize() {
   userName = GetUserName();
-  configReader.LoadConfiguration(Args::Get()->configFile);
+  configReader->LoadConfiguration();
   Log::Init(configReader);
   logBasics(userName);
   platformInit();
@@ -58,7 +58,7 @@ void Daemon::Initialize() {
 
 int Daemon::Start() {
   try {
-    DnsServer dnsServer(ioContext, configReader.dnsPort, &configReader);
+    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader);
     boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);
     signals.async_wait([&](boost::system::error_code ec, int signo) {
       LERROR << "Signal received" << std::endl;
@@ -68,9 +68,9 @@ int Daemon::Start() {
     forkAndSetupDaemon();
     ioContext.notify_fork(boost::asio::io_context::fork_child);
 
-    LTRACE << "Daemon started on port: " << configReader.dnsPort << std::endl;
+    LTRACE << "Daemon started on port: " << configReader->dnsPort << std::endl;
     ioContext.run();
-    LTRACE << "Daemon stopped on port: " << configReader.dnsPort << std::endl;
+    LTRACE << "Daemon stopped on port: " << configReader->dnsPort << std::endl;
 
     return EC_GOOD;
   } catch (boost::property_tree::ini_parser_error &) {

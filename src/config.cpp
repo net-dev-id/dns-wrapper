@@ -7,7 +7,6 @@
  */
 
 #include <boost/property_tree/ini_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -22,6 +21,18 @@ namespace pt = boost::property_tree;
 
 std::regex ConfigReader::ipRegex4(IPV4 "." IPV4 "." IPV4 "." IPV4);
 std::regex ConfigReader::ipRegex6(IPV6 "(:" IPV6 "){15}");
+
+std::string IniConfigReader::getStringValue(const std::string& key, const std::string& defValue) {
+  return tree.get<std::string>("main." + key, defValue);
+}
+
+long IniConfigReader::getLongValue(const std::string& key, const long& defValue) {
+  return tree.get<long>("main." + key, defValue);
+}
+
+bool IniConfigReader::getBoolValue(const std::string& key, const bool& defValue) {
+  return tree.get<bool>("main." + key, defValue);
+}
 
 void ConfigReader::addServer(const std::string &host, uint16_t port,
                              const std::string &protocol) {
@@ -47,52 +58,41 @@ void ConfigReader::addServer(const std::string &host, uint16_t port,
       {host, port, protocol == "udp" ? Protocol::Udp : Protocol::Tcp, ipv});
 }
 
-void ConfigReader::LoadConfiguration(const std::string &filePath) {
-  pt::ptree tree;
-  try {
-    pt::read_ini(filePath, tree);
-    logToConsoleAlso = tree.get<bool>("main.logToConsoleAlso", false);
-    logFile = tree.get<std::string>("main.logFile", LOG_FILE);
-    logLevel = Log::ToLogLevel(tree.get<std::string>(
-        "main.logLevel", Log::FromLogLevel(LogLevel::info)));
-    dnsPort = tree.get<uint16_t>("main.dnsPort", DNS_PORT);
+void ConfigReader::LoadConfiguration() {
+    logToConsoleAlso = getBoolValue("logToConsoleAlso", false);
+    logFile = getStringValue("logFile", LOG_FILE);
+    logLevel = Log::ToLogLevel(getStringValue("logLevel", Log::FromLogLevel(LogLevel::info)));
+    dnsPort = (uint16_t) getLongValue("dnsPort", DNS_PORT);
 #ifdef UNIX
-    pidFile = tree.get<std::string>("main.pidFile", PID_FILE);
+    pidFile = getStringValue("pidFile", PID_FILE);
 #endif /* UNIX */
 
-    std::string host = tree.get<std::string>("main.serverIp1", SERVER_IP_1);
-    uint16_t port = tree.get<uint16_t>("main.serverPort1", DNS_PORT);
-    std::string protocol = tree.get<std::string>("main.protocol1", "udp");
+    std::string host = getStringValue("serverIp1", SERVER_IP_1);
+    uint16_t port = (uint16_t) getLongValue("serverPort1", DNS_PORT);
+    std::string protocol = getStringValue("protocol1", "udp");
     addServer(host, port, protocol);
 
-    host = tree.get<std::string>("main.serverIp2", "");
+    host = getStringValue("serverIp2", "");
     if (!host.empty()) {
-      port = tree.get<uint16_t>("main.serverPort2", DNS_PORT);
-      protocol = tree.get<std::string>("main.protocol2", "udp");
-      addServer(host, port, protocol);
+        port = (uint16_t) getLongValue("serverPort2", DNS_PORT);
+        protocol = getStringValue("protocol2", "udp");
+        addServer(host, port, protocol);
     }
 
-    host = tree.get<std::string>("main.serverIp3", "");
+    host = getStringValue("serverIp3", "");
     if (!host.empty()) {
-      port = tree.get<uint16_t>("main.serverPort3", DNS_PORT);
-      protocol = tree.get<std::string>("main.protocol3", "udp");
-      addServer(host, port, protocol);
+        port = (uint16_t) getLongValue("serverPort3", DNS_PORT);
+        protocol = getStringValue("protocol3", "udp");
+        addServer(host, port, protocol);
     }
+}
 
+void IniConfigReader::LoadConfiguration() {
+  try {
+    pt::read_ini(filePath, tree);
+    ConfigReader::LoadConfiguration();
   } catch (boost::property_tree::ini_parser_error &e) {
     std::cerr << "Failure parsing configuration file: " << e.what()
               << std::endl;
   }
-}
-
-void ConfigReader::SaveConfiguration(const std::string &filePath) const {
-  pt::ptree tree;
-  tree.put("main.logToConsoleAlso", logToConsoleAlso);
-  tree.put("main.logFile", logFile);
-  tree.put("main.logLevel", Log::FromLogLevel(logLevel));
-#ifdef UNIX
-  tree.put("main.pidFile", pidFile);
-#endif /* UNIX */
-  tree.put("main.dnsPort", dnsPort);
-  pt::write_ini(filePath, tree);
 }

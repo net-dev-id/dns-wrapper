@@ -23,13 +23,13 @@
 
 #define LERROR_X LERROR << "[" << __FILE__ << ":" << __LINE__ << "] "
 
-struct ConfigReader;
+class ConfigReader;
 
 typedef boost::log::trivial::severity_level LogLevel;
 
 class Log {
 public:
-  static void Init(const ConfigReader &configReader);
+  static void Init(const ConfigReader *configReader);
   static LogLevel ToLogLevel(const std::string &);
   static std::string FromLogLevel(const LogLevel &);
 };

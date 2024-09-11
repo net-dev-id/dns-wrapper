@@ -6,14 +6,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "args.hpp"
 #include "daemon.hpp"
 
 class UnixDaemon : public Daemon {
 public:
-  UnixDaemon() : pidFileCreated(false) {}
+  UnixDaemon() : Daemon(new IniConfigReader(Args::Get()->configFile)), pidFileCreated(false) {}
   virtual ~UnixDaemon() {
     LTRACE << "Removing pid file" << std::endl;
     removePid();
+    delete (IniConfigReader*)configReader;
   }
 
 private:

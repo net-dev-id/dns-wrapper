@@ -45,6 +45,6 @@ private:
   std::string userName;
 
 protected:
-  ConfigReader configReader;
+  ConfigReader *configReader;
   boost::asio::io_context ioContext;
 };

@@ -18,18 +18,18 @@
 namespace logging = boost::log;
 namespace keywords = boost::log::keywords;
 
-void Log::Init(const ConfigReader &configReader) {
+void Log::Init(const ConfigReader *configReader) {
   logging::register_simple_formatter_factory<logging::trivial::severity_level,
                                              char>("Severity");
-  if (configReader.logToConsoleAlso) {
+  if (configReader->logToConsoleAlso) {
     logging::add_console_log(std::cout, keywords::format = LOG_FORMAT);
   }
 
-  logging::add_file_log(keywords::file_name = configReader.logFile,
+  logging::add_file_log(keywords::file_name = configReader->logFile,
                         keywords::format = LOG_FORMAT);
 
   logging::core::get()->set_filter(logging::trivial::severity >=
-                                   configReader.logLevel);
+                                   configReader->logLevel);
 
   logging::add_common_attributes();
 }

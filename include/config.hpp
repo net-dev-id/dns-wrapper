@@ -13,6 +13,7 @@
 #include <regex>
 #include <string>
 #include <vector>
+#include <boost/property_tree/ptree.hpp>
 
 enum Protocol {
   Tcp,
@@ -28,7 +29,8 @@ struct UpstreamServer {
   IpProtocolVersion protocolVersion;
 };
 
-struct ConfigReader {
+class ConfigReader {
+public:
   bool logToConsoleAlso;
   std::string logFile;
   LogLevel logLevel;
@@ -42,13 +44,32 @@ struct ConfigReader {
 
   std::vector<UpstreamServer> servers;
 
-  virtual void LoadConfiguration(const std::string &filePath);
-  virtual void SaveConfiguration(const std::string &filePath) const;
+  virtual void LoadConfiguration();
 
+private:
   static std::regex ipRegex4;
   static std::regex ipRegex6;
 
-private:
+protected:
   void addServer(const std::string &host, uint16_t port,
                  const std::string &protocol);
+
+  virtual std::string getStringValue(const std::string& key, const std::string& defValue) = 0;
+  virtual long getLongValue(const std::string& key, const long& defValue) = 0;
+  virtual bool getBoolValue(const std::string& key, const bool& defValue) = 0;
+};
+
+class IniConfigReader : public ConfigReader {
+public:
+  IniConfigReader(const std::string& filePath) : filePath(filePath) {}
+  void LoadConfiguration();
+
+protected:
+  virtual std::string getStringValue(const std::string& key, const std::string& defValue);
+  virtual long getLongValue(const std::string& key, const long& defValue);
+  virtual bool getBoolValue(const std::string& key, const bool& defValue);
+
+private:
+  const std::string& filePath;
+  boost::property_tree::ptree tree;
 };
