@@ -6,9 +6,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "common.h"
 #include "win32/service.hpp"
-#include "win32/win32daemon.hpp"
-#include <tchar.h>
+#include <Windows.h>
+
+void ServiceInit(const HANDLE stopEvent);
+void ServiceStart();
+void ServiceStop();
 
 static SERVICE_STATUS_HANDLE g_ServiceStatusHandle = NULL;
 static HANDLE g_StopEvent = INVALID_HANDLE_VALUE;
@@ -38,10 +42,9 @@ static void WINAPI ServiceExecutor(DWORD, LPTSTR *) {
   ReportStatus(SERVICE_START_PENDING);
   g_StopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-  Win32Daemon daemon(g_StopEvent);
-  daemon.Initialize();
+  ServiceInit(g_StopEvent);
   ReportStatus(SERVICE_RUNNING);
-  daemon.Start();
+  ServiceStart();
   ReportStatus(SERVICE_STOP_PENDING);
   CloseHandle(g_StopEvent);
   ReportStatus(SERVICE_STOPPED);
@@ -52,7 +55,8 @@ static DWORD WINAPI HandlerEx(DWORD control, DWORD, void *, void *) {
   case SERVICE_CONTROL_SHUTDOWN:
   case SERVICE_CONTROL_STOP:
     ReportStatus(SERVICE_STOP_PENDING);
-    SetEvent(g_StopEvent);
+    ServiceStop();
+    //SetEvent(g_StopEvent);
     break;
   default:
     ReportStatus(g_CurrentState);

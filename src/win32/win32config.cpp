@@ -11,7 +11,7 @@
 #include "common.h"
 
 std::string Win32ConfigReader::baseKey =
-    "\\SOFTWARE\\NetDevId\\DnsWrapper\\main";
+    "SOFTWARE\\NetDevId\\DnsWrapper\\main";
 
 std::string Win32ConfigReader::getStringValue(const std::string &key,
                                               const std::string &defValue) {
@@ -25,5 +25,5 @@ long Win32ConfigReader::getLongValue(const std::string &key,
 
 bool Win32ConfigReader::getBoolValue(const std::string &key,
                                      const bool &defValue) {
-  return m.RegGetBoolean(HKEY_LOCAL_MACHINE, baseKey, key, defValue);
+  return m.RegGetDword(HKEY_LOCAL_MACHINE, baseKey, key, defValue);
 }

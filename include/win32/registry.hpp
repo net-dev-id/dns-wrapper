@@ -6,9 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <boost/iostreams/categories.hpp>
 #include <cstddef>
-#include <iosfwd>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -17,8 +15,6 @@
 
  // Adapted from:
  // https://learn.microsoft.com/en-us/archive/msdn-magazine/2017/may/c-use-modern-c-to-access-the-windows-registry
-
-namespace io = boost::iostreams;
 
 class RegistryError : public std::runtime_error {
 public:

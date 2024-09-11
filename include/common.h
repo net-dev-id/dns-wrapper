@@ -8,6 +8,8 @@
 
 #pragma once
 
+#define DAEMON_NAME "dns-wrapper"
+
 #ifndef WIN32
 #define CONFIG_FILE_PATH "/etc/dnswrapper/config.ini"
 #define LOG_FILE "/var/log/dns-wrapper.log"

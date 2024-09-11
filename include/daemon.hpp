@@ -13,22 +13,16 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 
-#define DAEMON_NAME "dns-wrapper"
-
 class Daemon {
 public:
   Daemon();
-  virtual ~Daemon() {
-    if (lockOwned) {
-      LTRACE << "Removing owning process lock" << std::endl;
-      boost::interprocess::named_mutex::remove(DAEMON_NAME);
-    }
-  }
+  virtual ~Daemon();
 
   bool IsAlreadyRunning();
   int Run();
   void Initialize();
   int Start();
+  void Stop();
 
   virtual void platformInit() = 0;
   virtual void forkAndSetupDaemon(void) = 0;

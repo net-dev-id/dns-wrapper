@@ -7,6 +7,7 @@
  */
 
 #include "win32/registry.hpp"
+#include "log.hpp"
 #include <memory>
 #include <winerror.h>
 #include <winreg.h>
@@ -116,6 +117,17 @@ std::pair<std::string, DWORD> RegistryManager::RegValueType(const HKEY hKey,
   return std::make_pair(std::string{nameBuffer.get(), valueNameLen}, valueType);
 }
 
+#define HANDLE_ERROR \
+  if (retCode == ERROR_FILE_NOT_FOUND || retCode == ERROR_BAD_PATHNAME) { \
+    return defValue; \
+  } \
+\
+if (retCode != ERROR_SUCCESS) { \
+  LERROR_X << "Unable to read " << subKey << "'s value from registry" << std::endl; \
+  throw RegistryError{ "Cannot read from registry.", retCode }; \
+}
+
+
 bool RegistryManager::RegGetBoolean(const HKEY hKey, const std::string &subKey,
                                     const std::string &value,
                                     const bool &defValue) {
@@ -124,15 +136,7 @@ bool RegistryManager::RegGetBoolean(const HKEY hKey, const std::string &subKey,
 
   LONG retCode = RegGetValue(hKey, subKey.c_str(), value.c_str(),
                              RRF_RT_REG_BINARY, nullptr, &data, &dataSize);
-
-  if (retCode == ERROR_FILE_NOT_FOUND) {
-    return defValue;
-  }
-
-  if (retCode != ERROR_SUCCESS) {
-    throw RegistryError{"Cannot read DWORD from registry.", retCode};
-  }
-
+  HANDLE_ERROR
   return data;
 }
 
@@ -145,14 +149,7 @@ DWORD RegistryManager::RegGetDword(const HKEY hKey, const std::string &subKey,
   LONG retCode = RegGetValue(hKey, subKey.c_str(), value.c_str(),
                              RRF_RT_REG_DWORD, nullptr, &data, &dataSize);
 
-  if (retCode == ERROR_FILE_NOT_FOUND) {
-    return defValue;
-  }
-
-  if (retCode != ERROR_SUCCESS) {
-    throw RegistryError{"Cannot read DWORD from registry.", retCode};
-  }
-
+  HANDLE_ERROR
   return data;
 }
 
@@ -163,24 +160,14 @@ std::string RegistryManager::RegGetString(HKEY hKey, const std::string &subKey,
   LONG retCode = RegGetValue(hKey, subKey.c_str(), value.c_str(), RRF_RT_REG_SZ,
                              nullptr, nullptr, &dataSize);
 
-  if (retCode == ERROR_FILE_NOT_FOUND) {
-    return defValue;
-  }
-
-  if (retCode != ERROR_SUCCESS) {
-    throw RegistryError{"Cannot read string from registry", retCode};
-  }
-
+  HANDLE_ERROR
   std::string data;
   data.resize(dataSize / sizeof(char));
 
   retCode = RegGetValue(hKey, subKey.c_str(), value.c_str(), RRF_RT_REG_SZ,
                         nullptr, &data[0], &dataSize);
 
-  if (retCode != ERROR_SUCCESS) {
-    throw RegistryError{"Cannot read string from registry", retCode};
-  }
-
+  HANDLE_ERROR
   DWORD stringLengthInchars = dataSize / sizeof(char);
 
   stringLengthInchars--; // Exclude the NUL written by the Win32 API
