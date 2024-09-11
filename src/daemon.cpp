@@ -16,6 +16,7 @@
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <csignal>
 #include <exception>
@@ -25,7 +26,15 @@
 
 Daemon::Daemon()
     : lockOwned(false),
-      executionLock(boost::interprocess::open_or_create, DAEMON_NAME) {}
+      executionLock(boost::interprocess::open_or_create, DAEMON_NAME),
+      configReader(nullptr) {}
+
+Daemon::~Daemon() {
+  if (lockOwned) {
+    LTRACE << "Removing owning process lock" << std::endl;
+    boost::interprocess::named_mutex::remove(DAEMON_NAME);
+  }
+}
 
 int Daemon::Run() {
   Initialize();
@@ -50,7 +59,7 @@ static void logBasics(const std::string &userName) {
 
 void Daemon::Initialize() {
   userName = GetUserName();
-  configReader.LoadConfiguration(Args::Get()->configFile);
+  configReader->LoadConfiguration();
   Log::Init(configReader);
   logBasics(userName);
   platformInit();
@@ -58,7 +67,7 @@ void Daemon::Initialize() {
 
 int Daemon::Start() {
   try {
-    DnsServer dnsServer(ioContext, configReader.dnsPort, &configReader);
+    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader);
     boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);
     signals.async_wait([&](boost::system::error_code ec, int signo) {
       LERROR << "Signal received" << std::endl;
@@ -68,9 +77,9 @@ int Daemon::Start() {
     forkAndSetupDaemon();
     ioContext.notify_fork(boost::asio::io_context::fork_child);
 
-    LTRACE << "Daemon started on port: " << configReader.dnsPort << std::endl;
+    LTRACE << "Daemon started on port: " << configReader->dnsPort << std::endl;
     ioContext.run();
-    LTRACE << "Daemon stopped on port: " << configReader.dnsPort << std::endl;
+    LTRACE << "Daemon stopped on port: " << configReader->dnsPort << std::endl;
 
     return EC_GOOD;
   } catch (boost::property_tree::ini_parser_error &) {
@@ -88,3 +97,5 @@ int Daemon::Start() {
     return EC_MISC;
   }
 }
+
+void Daemon::Stop() { ioContext.stop(); }

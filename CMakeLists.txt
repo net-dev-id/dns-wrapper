@@ -19,7 +19,8 @@ cmake_minimum_required(VERSION 3.15)
 # Set project name, version and laguages here. (change as needed)
 # Version numbers are available by including "exampleConfig.h" in
 # the source. See exampleConfig.h.in for some more details.
-project(dns_wrapper VERSION 0.0.0.1 LANGUAGES C CXX)
+set(PROJECT_NAME dns_wrapper)
+project(${PROJECT_NAME} VERSION 0.0.0.1 LANGUAGES C CXX)
 
 # Options: Things you can set via commandline options to cmake (e.g. -DENABLE_LTO=[ON|OFF])
 option(ENABLE_WARNINGS_SETTINGS "Allow target_set_warnings to add flags and defines.
@@ -41,6 +42,16 @@ include(Warnings)
 
 # Check for LTO support.
 find_lto(CXX)
+
+if(MSVC)
+  # As per
+  # https://github.com/microsoft/vcpkg/discussions/22762
+  add_definitions(-D_WIN32_WINNT=0x0602)
+else()
+  # As per
+  # https://stackoverflow.com/questions/23137637/linker-error-while-linking-boost-log-tutorial-undefined-references
+  add_definitions(-DBOOST_LOG_DYN_LINK=1)
+endif(MSVC)
 
 # --------------------------------------------------------------------------------
 #                         Locate files (change as needed).
@@ -72,10 +83,11 @@ target_set_warnings(${LIBRARY_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Add an executable for the file app/main.cpp.
 # If you add more executables, copy these lines accordingly.
-add_executable(dns-wrapper app/main.cpp) # Name of exec. and location of file.
-target_link_libraries(dns-wrapper ${LIBRARY_NAME}) # Link the executable to library (if it uses it).
-target_set_warnings(dns-wrapper ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
-target_enable_lto(dns-wrapper optimized) # enable link-time-optimization if available for non-debug configurations
+set(EXEC_NAME dns-wrapper)
+add_executable(${EXEC_NAME} app/main.cpp) # Name of exec. and location of file.
+target_link_libraries(${EXEC_NAME} ${LIBRARY_NAME}) # Link the executable to library (if it uses it).
+target_set_warnings(${EXEC_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
+target_enable_lto(${EXEC_NAME} optimized) # enable link-time-optimization if available for non-debug configurations
 
 ################################################################################
 ## BOOST ##
@@ -85,15 +97,14 @@ set(Boost_USE_MULTITHREADED ON)
 #set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost CONFIG REQUIRED COMPONENTS system program_options log thread log_setup)
 include_directories(${Boost_INCLUDE_DIRS})
-target_link_libraries(dns-wrapper ${Boost_LIBRARIES})
+target_link_libraries(${EXEC_NAME} ${Boost_LIBRARIES})
 link_directories(${Boost_LIBRARY_DIRS})
-#target_link_libraries(dns-wrapper PRIVATE ${Boost_LIBRARIES} -lboost_system -lboost_program_options -lboost_log -lboost_thread -lboost_log_setup -lpthread -lboost_chrono)
 
 #################################################################################
 
 
 set_target_properties(
-    ${LIBRARY_NAME} dns-wrapper
+    ${LIBRARY_NAME} ${EXEC_NAME}
     PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED YES

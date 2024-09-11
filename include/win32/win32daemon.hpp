@@ -6,13 +6,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "args.hpp"
+#include "common.h"
 #include "daemon.hpp"
-#include <winsvc.h>
 
 class Win32Daemon : public Daemon {
 public:
-  Win32Daemon(HANDLE stopEvent) : stopEvent(stopEvent) {}
-  virtual ~Win32Daemon() {}
+  Win32Daemon(HANDLE stopEvent);
+
+  virtual ~Win32Daemon();
 
 private:
   virtual void platformInit();

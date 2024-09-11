@@ -1,22 +1,12 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 #pragma once
-
-#ifndef WIN32
-// As per
-// https://stackoverflow.com/questions/23137637/linker-error-while-linking-boost-log-tutorial-undefined-references
-#define BOOST_LOG_DYN_LINK 1
-#else
-// As per
-// https://github.com/microsoft/vcpkg/discussions/22762
-#define _WIN32_WINNT 0x0602
-#endif /* WIN32 */
 
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
@@ -33,13 +23,13 @@
 
 #define LERROR_X LERROR << "[" << __FILE__ << ":" << __LINE__ << "] "
 
-struct ConfigReader;
+class ConfigReader;
 
 typedef boost::log::trivial::severity_level LogLevel;
 
 class Log {
 public:
-  static void Init(const ConfigReader &configReader);
+  static void Init(const ConfigReader *configReader);
   static LogLevel ToLogLevel(const std::string &);
   static std::string FromLogLevel(const LogLevel &);
 };

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -13,22 +13,16 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 
-#define DAEMON_NAME "dns-wrapper"
-
 class Daemon {
 public:
   Daemon();
-  virtual ~Daemon() {
-    if (lockOwned) {
-      LTRACE << "Removing owning process lock" << std::endl;
-      boost::interprocess::named_mutex::remove(DAEMON_NAME);
-    }
-  }
+  virtual ~Daemon();
 
   bool IsAlreadyRunning();
   int Run();
   void Initialize();
   int Start();
+  void Stop();
 
   virtual void platformInit() = 0;
   virtual void forkAndSetupDaemon(void) = 0;
@@ -37,7 +31,7 @@ protected:
   virtual void signalHandler(boost::system::error_code, int) = 0;
 
 private:
-  bool lockOwned = false;
+  bool lockOwned;
   boost::interprocess::named_mutex executionLock;
 
   int childPid = -1;
@@ -45,6 +39,6 @@ private:
   std::string userName;
 
 protected:
-  ConfigReader configReader;
+  ConfigReader *configReader;
   boost::asio::io_context ioContext;
 };

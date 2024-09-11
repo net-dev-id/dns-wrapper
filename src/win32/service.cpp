@@ -7,8 +7,12 @@
  */
 
 #include "win32/service.hpp"
-#include "win32/win32daemon.hpp"
-#include <tchar.h>
+#include "common.h"
+#include <Windows.h>
+
+void ServiceInit(const HANDLE stopEvent);
+void ServiceStart();
+void ServiceStop();
 
 static SERVICE_STATUS_HANDLE g_ServiceStatusHandle = NULL;
 static HANDLE g_StopEvent = INVALID_HANDLE_VALUE;
@@ -20,7 +24,7 @@ static DWORD WINAPI HandlerEx(DWORD control, DWORD eventType, void *eventData,
 static void ReportStatus(DWORD state);
 
 int ServiceMain(int, char **) {
-  char* serviceName = (char*)(DAEMON_NAME);
+  char *serviceName = (char *)(DAEMON_NAME);
   SERVICE_TABLE_ENTRY serviceTable[] = {{serviceName, &ServiceExecutor},
                                         {NULL, NULL}};
 
@@ -38,10 +42,9 @@ static void WINAPI ServiceExecutor(DWORD, LPTSTR *) {
   ReportStatus(SERVICE_START_PENDING);
   g_StopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-  Win32Daemon daemon(g_StopEvent);
-  daemon.Initialize();
+  ServiceInit(g_StopEvent);
   ReportStatus(SERVICE_RUNNING);
-  daemon.Start();
+  ServiceStart();
   ReportStatus(SERVICE_STOP_PENDING);
   CloseHandle(g_StopEvent);
   ReportStatus(SERVICE_STOPPED);
@@ -52,7 +55,8 @@ static DWORD WINAPI HandlerEx(DWORD control, DWORD, void *, void *) {
   case SERVICE_CONTROL_SHUTDOWN:
   case SERVICE_CONTROL_STOP:
     ReportStatus(SERVICE_STOP_PENDING);
-    SetEvent(g_StopEvent);
+    ServiceStop();
+    // SetEvent(g_StopEvent);
     break;
   default:
     ReportStatus(g_CurrentState);
@@ -67,7 +71,7 @@ static void ReportStatus(DWORD state) {
   SERVICE_STATUS serviceStatus = {
       SERVICE_WIN32_OWN_PROCESS,
       g_CurrentState,
-      state == (DWORD) SERVICE_START_PENDING
+      state == (DWORD)SERVICE_START_PENDING
           ? 0
           : (DWORD)(SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN),
       NO_ERROR,

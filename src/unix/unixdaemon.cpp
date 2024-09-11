@@ -21,7 +21,7 @@ void UnixDaemon::platformInit() {}
 
 void UnixDaemon::savePid(void) {
   const pid_t pid = getpid();
-  std::ofstream pidFile(configReader.pidFile);
+  std::ofstream pidFile(configReader->pidFile);
   if (!pidFile) {
     LWARNING << "Unable to write PID to file. PID: " << pid << std::endl;
     return;
@@ -29,7 +29,7 @@ void UnixDaemon::savePid(void) {
 
   pidFile << getpid();
   pidFile.close();
-  LINFO << "PID file: " << configReader.pidFile << " written.";
+  LINFO << "PID file: " << configReader->pidFile << " written.";
   pidFileCreated = true;
 }
 
@@ -38,10 +38,10 @@ void UnixDaemon::removePid(void) {
     return;
   }
 
-  if (std::filesystem::remove(configReader.pidFile)) {
-    LINFO << "PID file: " << configReader.pidFile << " removed." << std::endl;
+  if (std::filesystem::remove(configReader->pidFile)) {
+    LINFO << "PID file: " << configReader->pidFile << " removed." << std::endl;
   } else {
-    LWARNING << "Deleting of PID file: " << configReader.pidFile
+    LWARNING << "Deleting of PID file: " << configReader->pidFile
              << " not successful." << std::endl;
   }
 }
@@ -92,7 +92,8 @@ void UnixDaemon::closeFds() {
 
 void UnixDaemon::signalHandler(boost::system::error_code ec, int signalNo) {
   if (ec) {
-    LERROR << "Error during signal handling: " << ec << " [" << signalNo << "]" << std::endl;
+    LERROR << "Error during signal handling: " << ec << " [" << signalNo << "]"
+           << std::endl;
     exit(EC_SIGNAL);
   }
 
