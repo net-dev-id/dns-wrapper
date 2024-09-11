@@ -24,8 +24,9 @@
 #include <stdexcept>
 
 Daemon::Daemon()
-    : configReader(nullptr), lockOwned(false),
-      executionLock(boost::interprocess::open_or_create, DAEMON_NAME) {}
+    : lockOwned(false),
+      executionLock(boost::interprocess::open_or_create, DAEMON_NAME),
+      configReader(nullptr) {}
 
 int Daemon::Run() {
   Initialize();

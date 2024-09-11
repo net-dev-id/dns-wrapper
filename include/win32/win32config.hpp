@@ -14,11 +14,13 @@
 class Win32ConfigReader : public ConfigReader {
 public:
   Win32ConfigReader() {}
+  virtual ~Win32ConfigReader() {}
 
 protected:
-	virtual std::string getStringValue(const std::string& key, const std::string& defValue);
-	virtual long getLongValue(const std::string& key, const long& defValue);
-	virtual bool getBoolValue(const std::string& key, const bool& defValue);
+  virtual std::string getStringValue(const std::string &key,
+                                     const std::string &defValue);
+  virtual long getLongValue(const std::string &key, const long &defValue);
+  virtual bool getBoolValue(const std::string &key, const bool &defValue);
 
 private:
   static std::string baseKey;

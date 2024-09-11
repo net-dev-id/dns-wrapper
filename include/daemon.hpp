@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -37,7 +37,7 @@ protected:
   virtual void signalHandler(boost::system::error_code, int) = 0;
 
 private:
-  bool lockOwned = false;
+  bool lockOwned;
   boost::interprocess::named_mutex executionLock;
 
   int childPid = -1;

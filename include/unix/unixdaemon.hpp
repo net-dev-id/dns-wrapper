@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -11,11 +11,13 @@
 
 class UnixDaemon : public Daemon {
 public:
-  UnixDaemon() : Daemon(new IniConfigReader(Args::Get()->configFile)), pidFileCreated(false) {}
+  UnixDaemon() : pidFileCreated(false) {
+    configReader = new IniConfigReader(Args::Get()->configFile);
+  }
   virtual ~UnixDaemon() {
     LTRACE << "Removing pid file" << std::endl;
     removePid();
-    delete (IniConfigReader*)configReader;
+    delete (IniConfigReader *)configReader;
   }
 
 private:
