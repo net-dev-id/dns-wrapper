@@ -11,14 +11,10 @@
 static Win32Daemon *daemon;
 
 void ServiceInit(const HANDLE stopEvent) {
-	daemon = new Win32Daemon(stopEvent);
-	daemon->Initialize();
+  daemon = new Win32Daemon(stopEvent);
+  daemon->Initialize();
 }
 
-void ServiceStart() {
-	daemon->Start();
-}
+void ServiceStart() { daemon->Start(); }
 
-void ServiceStop() {
-	daemon->Stop();
-}
+void ServiceStop() { daemon->Stop(); }

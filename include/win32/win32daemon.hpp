@@ -6,14 +6,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "common.h"
 #include "args.hpp"
+#include "common.h"
 #include "daemon.hpp"
 
 class Win32Daemon : public Daemon {
 public:
   Win32Daemon(HANDLE stopEvent);
-  
+
   virtual ~Win32Daemon();
 
 private:

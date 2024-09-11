@@ -117,16 +117,16 @@ std::pair<std::string, DWORD> RegistryManager::RegValueType(const HKEY hKey,
   return std::make_pair(std::string{nameBuffer.get(), valueNameLen}, valueType);
 }
 
-#define HANDLE_ERROR \
-  if (retCode == ERROR_FILE_NOT_FOUND || retCode == ERROR_BAD_PATHNAME) { \
-    return defValue; \
-  } \
-\
-if (retCode != ERROR_SUCCESS) { \
-  LERROR_X << "Unable to read " << subKey << "'s value from registry" << std::endl; \
-  throw RegistryError{ "Cannot read from registry.", retCode }; \
-}
-
+#define HANDLE_ERROR                                                           \
+  if (retCode == ERROR_FILE_NOT_FOUND || retCode == ERROR_BAD_PATHNAME) {      \
+    return defValue;                                                           \
+  }                                                                            \
+                                                                               \
+  if (retCode != ERROR_SUCCESS) {                                              \
+    LERROR_X << "Unable to read " << subKey << "'s value from registry"        \
+             << std::endl;                                                     \
+    throw RegistryError{"Cannot read from registry.", retCode};                \
+  }
 
 bool RegistryManager::RegGetBoolean(const HKEY hKey, const std::string &subKey,
                                     const std::string &value,

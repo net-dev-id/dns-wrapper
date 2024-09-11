@@ -16,8 +16,8 @@
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
-#include <boost/property_tree/ini_parser.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 #include <csignal>
 #include <exception>
 #include <iostream>
@@ -30,10 +30,10 @@ Daemon::Daemon()
       configReader(nullptr) {}
 
 Daemon::~Daemon() {
-    if (lockOwned) {
-        LTRACE << "Removing owning process lock" << std::endl;
-        boost::interprocess::named_mutex::remove(DAEMON_NAME);
-    }
+  if (lockOwned) {
+    LTRACE << "Removing owning process lock" << std::endl;
+    boost::interprocess::named_mutex::remove(DAEMON_NAME);
+  }
 }
 
 int Daemon::Run() {
@@ -98,6 +98,4 @@ int Daemon::Start() {
   }
 }
 
-void Daemon::Stop() {
-    ioContext.stop();
-}
+void Daemon::Stop() { ioContext.stop(); }

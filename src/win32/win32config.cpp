@@ -10,8 +10,7 @@
 #include "win32/win32config.hpp"
 #include "common.h"
 
-std::string Win32ConfigReader::baseKey =
-    "SOFTWARE\\NetDevId\\DnsWrapper\\main";
+std::string Win32ConfigReader::baseKey = "SOFTWARE\\NetDevId\\DnsWrapper\\main";
 
 std::string Win32ConfigReader::getStringValue(const std::string &key,
                                               const std::string &defValue) {
