@@ -63,7 +63,7 @@ void ConfigReader::addServer(const std::string &host, uint16_t port,
 }
 
 void ConfigReader::LoadConfiguration() {
-  logToConsoleAlso = getBoolValue("logToConsoleAlso", false);
+  logToConsoleAlso = getBoolValue("logToConsoleAlso", true);
   logFile = getStringValue("logFile", LOG_FILE);
   logLevel = Log::ToLogLevel(
       getStringValue("logLevel", Log::FromLogLevel(LogLevel::info)));
@@ -95,9 +95,9 @@ void ConfigReader::LoadConfiguration() {
 void IniConfigReader::LoadConfiguration() {
   try {
     pt::read_ini(filePath, tree);
-    ConfigReader::LoadConfiguration();
   } catch (boost::property_tree::ini_parser_error &e) {
     std::cerr << "Failure parsing configuration file: " << e.what()
-              << std::endl;
+              << ". Will continue with defaults." << std::endl;
   }
+  ConfigReader::LoadConfiguration();
 }
