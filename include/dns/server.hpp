@@ -16,7 +16,6 @@
 #include "rule/engine.hpp"
 
 #include <boost/asio/io_context.hpp>
-// #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/generic/raw_protocol.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/ip/v6_only.hpp>
@@ -27,7 +26,6 @@
 
 #define ONE_HOUR 1 * 60 * 60;
 
-// using boost::asio::ip::tcp;
 using boost::asio::generic::raw_protocol;
 
 class RuleEngine;
@@ -63,9 +61,6 @@ private:
                   const InPacket &ipacket);
   void updateErrorResponse(DnsPacket &packet, const uint8_t &errCode);
   void updateRedirectResponse(DnsPacket &packet) const;
-
-  // void receive4();
-  // void receive6();
   void receive(SocketData &d);
 
 private:
@@ -73,14 +68,6 @@ private:
   PeerRequests peerRequests;
 
   std::vector<SocketData> socketData;
-  /*
-  udp::socket socket4;
-  udp::endpoint endpoint4;
-  BytePacketBuffer recvBuffer4;
-  udp::socket socket6;
-  udp::endpoint endpoint6;
-  BytePacketBuffer recvBuffer6;
-  */
 
   const ConfigReader *configReader;
   UpstreamServerInfo *servers;

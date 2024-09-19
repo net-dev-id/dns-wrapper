@@ -30,11 +30,7 @@
 #include <cstdint>
 #include <cstring>
 #include <ctime>
-#include <linux/if_packet.h>
-#include <net/ethernet.h>
-#include <netinet/in.h>
 #include <ostream>
-#include <sys/socket.h>
 
 #include "bookkeeping/peer.hpp"
 #include "bookkeeping/server.hpp"
@@ -55,7 +51,7 @@ using boost::asio::generic::raw_protocol;
 
 DnsServer::DnsServer(boost::asio::io_context &io_context, uint16_t port,
                      const ConfigReader *configReader)
-    : /*socket4(io_context), socket6(io_context),*/ configReader(configReader) {
+    : configReader(configReader) {
   using namespace boost::asio::ip;
 
   servers = nullptr;
@@ -95,14 +91,6 @@ DnsServer::DnsServer(boost::asio::io_context &io_context, uint16_t port,
 
   NetInterface<class IF_CLASS> netInterface;
   for (auto it = netInterface.begin(); it != netInterface.end(); it++) {
-    /*
-    sockaddr_ll sockaddr{};
-    sockaddr.sll_family = PF_PACKET;
-    sockaddr.sll_protocol = htons(ETH_P_ALL);
-    sockaddr.sll_ifindex = it->Index();
-    sockaddr.sll_hatype = 1;
-    */
-
     sockaddr_in sockaddr{};
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_port = htons(port);
@@ -121,19 +109,6 @@ DnsServer::DnsServer(boost::asio::io_context &io_context, uint16_t port,
     socketData.push_back(data);
     receive(data);
   }
-
-  /*
-  socket4.open({udp::v4()});
-  socket4.bind({udp::v4(), port});
-
-  socket6.open({udp::v6()});
-  boost::asio::ip::v6_only option(true);
-  socket6.set_option(option);
-  socket6.bind({udp::v6(), port});
-  */
-
-  // receive4();
-  // receive6();
 }
 
 void DnsServer::receive(SocketData &d) {
@@ -149,8 +124,6 @@ DnsServer::~DnsServer() {
   for (auto &s : socketData) {
     s.socket->close();
   }
-  // socket4.close();
-  // socket6.close();
 }
 
 void DnsServer::receive(boost::system::error_code ec, std::size_t n, bool ipv4,

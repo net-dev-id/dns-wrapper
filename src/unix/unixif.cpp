@@ -33,16 +33,6 @@ struct ifaddrs {
 };
 */
 
-template <> int Interface<ifaddrs>::Index() const {
-  return if_nametoindex(addrs->ifa_name);
-}
-
-template <> std::string Interface<ifaddrs>::Name() const {
-  return addrs->ifa_name;
-}
-
-template <> void Interface<ifaddrs>::Next() { addrs = addrs->ifa_next; }
-
 static ifaddrs *getIfAddrs() {
   ifaddrs *addrs;
   int res = getifaddrs(&addrs);
@@ -53,8 +43,33 @@ static ifaddrs *getIfAddrs() {
   return addrs;
 }
 
-template <>
-NetInterface<ifaddrs>::NetInterface()
-    : addrs(getIfAddrs()), iter(iterator(addrs)) {}
+template <> Interface<ifaddrs>::~Interface() {
+  if (start) {
+    freeifaddrs(start);
+  }
+}
 
-template <> NetInterface<ifaddrs>::~NetInterface() { freeifaddrs(addrs); }
+template <> int Interface<ifaddrs>::Index() const {
+  return if_nametoindex(ptr->ifa_name);
+}
+
+template <> std::string Interface<ifaddrs>::Name() const {
+  return ptr->ifa_name;
+}
+
+template <> Interface<ifaddrs> &Interface<ifaddrs>::operator++() {
+  if (ptr) {
+    ptr = ptr->ifa_next;
+  }
+  return *this;
+}
+
+template <> Interface<ifaddrs> Interface<ifaddrs>::operator++(int) {
+  if (ptr) {
+    ptr = ptr->ifa_next;
+  }
+  return *this;
+}
+
+template <>
+NetInterface<ifaddrs>::NetInterface() : start(getIfAddrs()), finish(nullptr) {}

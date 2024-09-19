@@ -6,81 +6,63 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <iterator>
+#include <cstddef>
+#include <string>
 
 template <class T> class Interface {
+private:
+  T *start, *ptr;
+
 public:
-  Interface(T *addrs) : start(addrs), addrs(addrs) {}
-  ~Interface() {}
+  Interface(T *addrs) : start(addrs), ptr(addrs) {}
+  ~Interface();
 
   int Index() const;
   std::string Name() const;
-  T *Start() { return start; }
-  void Next();
+  T *Start() const { return start; }
+  T *Ptr() const { return ptr; }
 
-  friend bool operator==(const Interface<T> &a, const Interface<T> &b) {
-    return a.addrs == b.addrs;
-  };
-
-  friend bool operator!=(const Interface<T> &a, const Interface<T> &b) {
-    return a.addrs != b.addrs;
-  };
-
-private:
-  T *start;
-  T *addrs;
+  Interface<T> &operator++();   // prefix
+  Interface<T> operator++(int); // postfix
+  bool operator==(const Interface<T> &b) const { return ptr == b.ptr; }
+  bool operator!=(const Interface<T> &b) const { return ptr != b.ptr; }
 };
 
 template <class T> class NetInterface {
 public:
-  class iterator {
+  class Iterator {
   public:
-    using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = Interface<T>;
-    using pointer = Interface<T> *;
-    using reference = Interface<T> &;
-
-    iterator(T *t) : val(t), sentinel(nullptr) {}
-
-    reference operator*() const { return &val; }
-
-    pointer operator->() { return val; }
-
-    iterator &operator++() {
-      val.Next();
-      return *this;
-    }
-
-    iterator operator++(int) {
-      iterator tmp = *this;
-      ++(*this);
-      return tmp;
-    }
-
-    pointer begin() { return &val; }
-    pointer end() { return &sentinel; }
-
-    friend bool operator==(const iterator &a, const iterator &b) {
-      return a.val == b.val;
-    };
-    friend bool operator!=(const iterator &a, const iterator &b) {
-      return a.val != b.val;
-    };
+    using element_type = Interface<T>;
+    using pointer = element_type *;
+    using reference = element_type &;
 
   private:
-    value_type val, sentinel;
-    static_assert(std::sentinel_for<decltype(&sentinel), decltype(&val)>);
+    element_type addrs;
+
+  public:
+    Iterator(T *p) : addrs(Interface<T>(p)) {}
+    reference operator*() const { return addrs; }
+    Iterator &operator++() {
+      addrs++;
+      return *this;
+    }
+    Iterator operator++(int) {
+      Iterator tmp = *this;
+      ++addrs;
+      return tmp;
+    }
+    bool operator==(const Iterator &b) { return addrs == b.addrs; }
+    bool operator!=(const Iterator &b) { return addrs != b.addrs; }
   };
 
   NetInterface();
-  ~NetInterface();
 
-  iterator begin() { return iterator(iter.begin()->Start()); }
-  iterator end() { return iterator(iter.end()->Start()); }
+  Iterator begin() { return start; }
+
+  Iterator end() { return finish; }
 
 private:
-  T *addrs;
-  static_assert(std::input_iterator<iterator>);
-  iterator iter;
+  Iterator start;
+  Iterator finish;
 };
