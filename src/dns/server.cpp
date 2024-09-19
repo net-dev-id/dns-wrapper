@@ -1,37 +1,61 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "log.hpp"
-#include "dns/server.hpp"
-#include "bookkeeping/peer.hpp"
-#include "bookkeeping/server.hpp"
-#include "dns/dnscommon.hpp"
-#include "dns/dnspacket.hpp"
-#include "tp/sha256.hpp"
+#include <algorithm>
+#ifdef __linux
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#define IF_CLASS ifaddrs
+#else /* WIN32 */
+#include <iphlpapi.h>
+#define IF_CLASS IP_ADAPTER_ADDRESSES
+#include <ws2tcpip.h>
+#endif /* __linux */
+
+#include <boost/asio.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/asio/ip/address_v6.hpp>
 #include <boost/asio/ip/impl/address_v4.ipp>
 #include <boost/asio/ip/impl/address_v6.ipp>
+#include <boost/asio/ip/udp.hpp>
 #include <boost/chrono.hpp>
+#include <boost/format.hpp>
 #include <boost/thread/thread.hpp>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <ctime>
+#include <linux/if_packet.h>
+#include <net/ethernet.h>
+#include <netinet/in.h>
 #include <ostream>
+#include <sys/socket.h>
+
+#include "bookkeeping/peer.hpp"
+#include "bookkeeping/server.hpp"
+#include "dns/dnscommon.hpp"
+#include "dns/dnspacket.hpp"
+#include "dns/server.hpp"
+#include "log.hpp"
+#include "net/if.hpp"
+#include "net/packet.hpp"
+#include "rule/input.hpp"
+#include "tp/sha256.hpp"
 
 #define THREAD_SLEEP_AFTER_FAIL 100
 #define UDP_RESIZE_PKG_SZ_AFTER                                                \
   60 /* How often to reset our idea of max packet size. */
 
+using boost::asio::generic::raw_protocol;
+
 DnsServer::DnsServer(boost::asio::io_context &io_context, uint16_t port,
                      const ConfigReader *configReader)
-    : socket4(io_context), socket6(io_context), configReader(configReader) {
+    : /*socket4(io_context), socket6(io_context),*/ configReader(configReader) {
   using namespace boost::asio::ip;
 
   servers = nullptr;
@@ -41,22 +65,64 @@ DnsServer::DnsServer(boost::asio::io_context &io_context, uint16_t port,
       continue;
     }
 
+    int af;
+    boost::asio::ip::address targetIP;
+    bool ipv4;
     UpstreamServerInfo *usi = new UpstreamServerInfo;
     if (server.protocolVersion == IpProtocolVersion::Ipv4) {
-      auto targetIP = make_address_v4(server.hostIp);
-      usi->endpoint = udp::endpoint{targetIP, server.port};
+      af = AF_INET;
+      targetIP = make_address_v4(server.hostIp);
+      ipv4 = true;
       usi->ipv4 = true;
     } else {
-      auto targetIP = make_address_v6(server.hostIp);
-      usi->endpoint = udp::endpoint(targetIP, server.port);
-      usi->ipv4 = false;
+      af = AF_INET6;
+      targetIP = make_address_v6(server.hostIp);
+      ipv4 = false;
     }
+
+    if (inet_pton(af, server.hostIp.c_str(), &usi->address) != 1) {
+      LERROR << "Unable to parse IP address: " << server.hostIp << std::endl;
+      delete usi;
+      continue;
+    }
+    usi->endpoint = udp::endpoint(targetIP, server.port);
+    usi->ipv4 = ipv4;
 
     usi->next = nullptr;
     *t = usi;
     t = &usi->next;
   }
 
+  NetInterface<class IF_CLASS> netInterface;
+  for (auto it = netInterface.begin(); it != netInterface.end(); it++) {
+    /*
+    sockaddr_ll sockaddr{};
+    sockaddr.sll_family = PF_PACKET;
+    sockaddr.sll_protocol = htons(ETH_P_ALL);
+    sockaddr.sll_ifindex = it->Index();
+    sockaddr.sll_hatype = 1;
+    */
+
+    sockaddr_in sockaddr{};
+    sockaddr.sin_family = AF_INET;
+    sockaddr.sin_port = htons(port);
+    sockaddr.sin_addr.s_addr = INADDR_ANY;
+    std::memset(sockaddr.sin_zero, 0, sizeof(sockaddr.sin_zero));
+
+    raw_protocol::endpoint endpoint(&sockaddr, sizeof(sockaddr), SOCK_RAW);
+    SocketData data{socketData.size(),
+                    new raw_protocol::socket(io_context, endpoint),
+                    endpoint,
+                    {}};
+
+    data.socket->open({udp::v4()});
+    data.socket->bind(endpoint);
+    data.socket->non_blocking();
+    socketData.push_back(data);
+    receive(data);
+  }
+
+  /*
   socket4.open({udp::v4()});
   socket4.bind({udp::v4(), port});
 
@@ -64,34 +130,48 @@ DnsServer::DnsServer(boost::asio::io_context &io_context, uint16_t port,
   boost::asio::ip::v6_only option(true);
   socket6.set_option(option);
   socket6.bind({udp::v6(), port});
+  */
 
-  receive4();
-  receive6();
+  // receive4();
+  // receive6();
+}
+
+void DnsServer::receive(SocketData &d) {
+  d.socket->async_receive_from(
+      boost::asio::buffer(d.recvBuffer.buf), d.endpoint,
+      [&](boost::system::error_code ec, std::size_t n) {
+        receive(ec, n, true, d);
+        receive(d);
+      });
 }
 
 DnsServer::~DnsServer() {
-  socket4.close();
-  socket6.close();
+  for (auto &s : socketData) {
+    s.socket->close();
+  }
+  // socket4.close();
+  // socket6.close();
 }
 
-void DnsServer::receive(boost::system::error_code ec, std::size_t n,
-                        bool ipv4) {
+void DnsServer::receive(boost::system::error_code ec, std::size_t n, bool ipv4,
+                        SocketData &d) {
   if (ec) {
     LERROR << "Error calling async_receive_from [" << ipv4
            << "]: " << ec.message() << std::endl;
     // boost::this_thread::sleep_for(
     //     boost::chrono::milliseconds(THREAD_SLEEP_AFTER_FAIL));
   } else {
-    if (n < sizeof(DnsHeader)) {
-      LERROR << "Invalid packet recieved with size: " << n << std::endl;
+    BytePacketBuffer &bpb = d.recvBuffer;
+
+    InPacket ipacket;
+    int res = ipacket.Read(&bpb);
+
+    if (res != E_NOERROR) {
+      LERROR << "Invalid packet received: " << res << std::endl;
       return;
     }
 
-    udp::endpoint &endpoint = ipv4 ? endpoint4 : endpoint6;
-    BytePacketBuffer &bpb = ipv4 ? recvBuffer4 : recvBuffer6;
-    bool sent = false;
-
-    if (endpoint.port() == 0) {
+    if (ipacket.SourcePort == 0) {
       LERROR << "Data received from port 0" << std::endl;
       return;
     }
@@ -99,45 +179,26 @@ void DnsServer::receive(boost::system::error_code ec, std::size_t n,
     bpb.pos = 0;
     bpb.size = n;
 
-    int res;
     DnsPacket packet;
 
     // DumpHex(bpb.buf, bpb.size);
 
-    do {
-      res = packet.Read(&bpb);
-      if (res != E_NOERROR) {
-        updateErrorResponse(packet, E_FORMERR);
-        break;
-      }
-
-      if (packet.IsRequest()) { // Incoming request
-        sent = processRequest(packet, res, endpoint, ipv4);
-      } else { // Response from upstream DNS Server
-        sent = processUpstreamResponse(packet, res, endpoint);
-      }
-    } while (false);
-
-    if (!sent) {
-      if (ipv4) {
-        sendPacket(packet, endpoint, ipv4);
-      } else {
-        sendPacket(packet, endpoint, ipv4);
-      }
+    res = packet.Read(&bpb);
+    if (res != E_NOERROR) {
+      updateErrorResponse(packet, E_FORMERR);
+      return;
     }
-  }
 
-  if (ipv4) {
-    LDEBUG << "Listen ipv4" << std::endl;
-    receive4();
-  } else {
-    LDEBUG << "Listen ipv6" << std::endl;
-    receive6();
+    if (packet.IsRequest()) { // Incoming request
+      processRequest(d, packet, res, ipacket);
+    } else { // Response from upstream DNS Server
+      processUpstreamResponse(packet, res, ipacket);
+    }
   }
 }
 
-bool DnsServer::processRequest(DnsPacket &packet, int &res,
-                               const udp::endpoint &endpoint, bool ipv4) {
+bool DnsServer::processRequest(const SocketData &d, DnsPacket &packet, int &res,
+                               const InPacket &ipacket) {
   bool sent = false;
   LDEBUG << "Incoming packet:" << std::endl << packet << std::endl;
 
@@ -147,15 +208,8 @@ bool DnsServer::processRequest(DnsPacket &packet, int &res,
     return sent;
   }
 
-  if (ruleMatcher.IsMatch(packet, endpoint)) {
-    LINFO << "Rule matched for " << endpoint << std::endl;
-    updateRedirectResponse(packet);
-  } else {
-    LDEBUG << "Resolving using upstream servers for query from: " << endpoint
-           << std::endl;
-    sent = true;
-    resolve(packet, endpoint, ipv4);
-  }
+  Input input{&ipacket, &packet, this, &d};
+  ruleEngine.Evaluate(input);
 
   return sent;
 }
@@ -166,7 +220,7 @@ static std::time_t getNow() {
 }
 
 bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
-                                        const udp::endpoint &endpoint) {
+                                        const InPacket &ipacket) {
   bool sent = true;
   const std::time_t now = getNow();
   LDEBUG << "Incoming packet [@" << now << "]:" << std::endl
@@ -174,13 +228,18 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
 
   UpstreamServerInfo *server;
   for (server = servers; server; server = server->next) {
-    if (server->endpoint == endpoint) {
-      break;
+    if (server->ipv4 != ipacket.Ipv4 || server->port != ipacket.SourcePort ||
+        (server->ipv4 && server->address.Ipv4 != ipacket.IpSource.Ipv4) ||
+        (!server->ipv4 &&
+         std::ranges::equal(server->address.Ipv6, ipacket.IpSource.Ipv6))) {
+      continue;
     }
+
+    break;
   }
 
   if (server == nullptr) {
-    LERROR << "Upstream packet from " << endpoint
+    LERROR << "Upstream packet from " << ipacket
            << " is not from any known server: " << packet << std::endl;
     return sent;
   }
@@ -188,7 +247,7 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
   res = packet.Validate(PacketType::IncomingResponse);
   if (res != E_NOERROR) {
     server->stats.invalids++;
-    LERROR << "Upstream packet from " << endpoint << " is invalid: " << packet
+    LERROR << "Upstream packet from " << ipacket << " is invalid: " << packet
            << std::endl;
     return sent;
   }
@@ -202,7 +261,7 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
     server->stats.nosources++;
     // We send request to all configured servers for now. The record might
     // have been removed as we got request from first server that replied.
-    LINFO << "No source request found for reply from " << endpoint << ": "
+    LINFO << "No source request found for reply from " << ipacket << ": "
           << std::endl
           << packet << std::endl;
     return sent;
@@ -225,10 +284,11 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
   packet.SetRecursionAvailable(true);
 
   for (auto source = &r->source; source; source = source->next) {
-    LDEBUG << "Endpoint: " << source->endpoint << ", " << source->ipv4
-           << std::endl;
+    LDEBUG << "Endpoint: " << ipacket << ", " << source->ipv4 << std::endl;
     packet.SetId(source->originalId);
-    sendPacket(packet, source->endpoint, source->ipv4);
+    // The data for socket from which request came
+    SocketData &d = socketData[source->index];
+    sendPacket(d, packet, ipacket);
   }
 
   peerRequests.FreePeerRequestRecord(r);
@@ -236,7 +296,7 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
   return sent;
 }
 
-void DnsServer::updateRedirectResponse(DnsPacket &packet) {
+void DnsServer::updateRedirectResponse(DnsPacket &packet) const {
   packet.SetAsQueryResponse();
   packet.SetAsAuthoritativeAnswer(true);
   packet.SetRecursionAvailable(true);
@@ -261,15 +321,15 @@ void DnsServer::updateRedirectResponse(DnsPacket &packet) {
   });
 }
 
-void DnsServer::updateErrorResponse(DnsPacket &packet, const uint8_t& errCode) {
+void DnsServer::updateErrorResponse(DnsPacket &packet, const uint8_t &errCode) {
   packet.SetResponseCode(errCode);
   packet.SetAsQueryResponse();
   packet.SetAsAuthoritativeAnswer(true);
   packet.SetRecursionAvailable(true);
 }
 
-void DnsServer::sendPacket(const DnsPacket &packet,
-                           const udp::endpoint &endpoint, bool ipv4) {
+void DnsServer::sendPacket(const SocketData &d, const DnsPacket &packet,
+                           const InPacket &ipacket) {
   BytePacketBuffer responseBuffer;
   responseBuffer.pos = 0;
 
@@ -282,14 +342,16 @@ void DnsServer::sendPacket(const DnsPacket &packet,
   // DumpHex(responseBuffer.buf, responseBuffer.pos);
   LDEBUG << "Outgoing packet:" << std::endl << packet << std::endl;
   boost::system::error_code ec;
-  if (ipv4) {
-    LDEBUG << "Sending ipv4 data: " << endpoint << std::endl;
-    socket4.send_to(boost::asio::buffer(responseBuffer.buf, responseBuffer.pos),
-                    endpoint, 0, ec);
+  if (ipacket.Ipv4) {
+    LDEBUG << "Sending ipv4 data: " << ipacket << std::endl;
+    d.socket->send_to(
+        boost::asio::buffer(responseBuffer.buf, responseBuffer.pos), d.endpoint,
+        0, ec);
   } else {
-    LDEBUG << "Sending ipv6 data: " << endpoint << std::endl;
-    socket6.send_to(boost::asio::buffer(responseBuffer.buf, responseBuffer.pos),
-                    endpoint, 0, ec);
+    LDEBUG << "Sending ipv6 data: " << ipacket << std::endl;
+    d.socket->send_to(
+        boost::asio::buffer(responseBuffer.buf, responseBuffer.pos), d.endpoint,
+        0, ec);
   }
 
   if (ec) {
@@ -298,28 +360,17 @@ void DnsServer::sendPacket(const DnsPacket &packet,
   }
 }
 
-void DnsServer::receive4() {
-  socket4.async_receive_from(boost::asio::buffer(recvBuffer4.buf), endpoint4,
-                             [this](boost::system::error_code ec,
-                                    std::size_t n) { receive(ec, n, true); });
-}
-
-void DnsServer::receive6() {
-  socket6.async_receive_from(boost::asio::buffer(recvBuffer6.buf), endpoint6,
-                             [this](boost::system::error_code ec,
-                                    std::size_t n) { receive(ec, n, false); });
-}
-
 static void addSource(PeerRequests::PeerRequestRecord::PeerSource *s,
-                      const DnsPacket &packet, const udp::endpoint &endpoint,
+                      const DnsPacket &packet,
+                      const raw_protocol::endpoint &endpoint,
                       const bool &ipv4) {
   s->originalId = packet.GetId();
   s->endpoint = endpoint;
   s->ipv4 = ipv4;
 }
 
-void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
-                        bool ipv4) {
+void DnsServer::resolve(const SocketData &d, DnsPacket &packet,
+                        const InPacket &ipacket) {
   if (!servers) {
     LWARNING << "No upstream server found: " << packet << std::endl;
     return;
@@ -341,18 +392,21 @@ void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
     if (!r->HasTimedOut()) {
       auto s = &r->source;
       for (; s; s = s->next) {
-        if (s->ipv4 == ipv4 && s->originalId == packet.GetId() &&
-            s->endpoint == endpoint) {
+        if (s->ipv4 == ipacket.Ipv4 && s->originalId == packet.GetId() &&
+            s->ipPort == ipacket.SourcePort &&
+            ((s->ipv4 && s->ipAddress.Ipv4 == ipacket.IpSource.Ipv4) ||
+             (!s->ipv4 &&
+              std::ranges::equal(s->ipAddress.Ipv6, ipacket.IpSource.Ipv6)))) {
           break;
         }
       }
 
       if (s) { // This is repeat from client while another is in progress
-        LDEBUG << "Repeat query from client: " << endpoint << std::endl;
+        LDEBUG << "Repeat query from client: " << ipacket << std::endl;
         if (difftime(now, r->time) < 2) {
           LWARNING << "Repeate query within 2 seconds. Skipping" << std::endl;
           packet.SetResponseCode(E_REFUSED);
-          sendPacket(packet, endpoint, ipv4);
+          sendPacket(d, packet, ipacket);
         }
 
         return;
@@ -361,11 +415,12 @@ void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
 
         if (!s) { // Refuse the packet since we are maxed out
           packet.SetResponseCode(E_REFUSED);
-          sendPacket(packet, endpoint, ipv4);
+          sendPacket(d, packet, ipacket);
         } else {
+          s->index = d.index;
           s->next = r->source.next;
           r->source.next = s;
-          addSource(s, packet, endpoint, ipv4);
+          addSource(s, packet, d.endpoint, ipacket.Ipv4);
         }
 
         return;
@@ -377,11 +432,11 @@ void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
     r = peerRequests.GetNewRecord(now, false);
     if (!r) {
       packet.SetResponseCode(E_REFUSED);
-      sendPacket(packet, endpoint, ipv4);
+      sendPacket(d, packet, ipacket);
       return;
     }
 
-    addSource(&r->source, packet, endpoint, ipv4);
+    addSource(&r->source, packet, d.endpoint, ipacket.Ipv4);
     r->newId = peerRequests.GetNewId();
     std::memcpy(r->hash, digest, HASH_SIZE);
     packet.SetId(r->newId);
@@ -391,6 +446,17 @@ void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
   r->sentTo = servers;
   for (auto server = servers; server; server = server->next) {
     server->stats.queries++;
-    sendPacket(packet, server->endpoint, server->ipv4);
+    sendPacket(d, packet, ipacket);
   }
+}
+
+void DnsServer::Resolve(const SocketData *d, DnsPacket *p, const InPacket *ip) {
+  resolve(*d, *p, *ip);
+  sendPacket(*d, *p, *ip);
+}
+
+void DnsServer::Redirect(const SocketData *d, DnsPacket *p,
+                         const InPacket *ip) {
+  updateRedirectResponse(*p);
+  sendPacket(*d, *p, *ip);
 }

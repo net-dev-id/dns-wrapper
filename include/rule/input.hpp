@@ -8,10 +8,14 @@
 
 #pragma once
 
-#include <string>
+struct InPacket;
+class DnsPacket;
+class DnsServer;
+struct SocketData;
 
-class UnixUtil {
-public:
-  [[noreturn]]
-  static void Die(const std::string &baseMessage, const int exitCode);
+struct Input {
+  const InPacket *ipacket;
+  DnsPacket *packet;
+  DnsServer *server;
+  const SocketData *socketData;
 };

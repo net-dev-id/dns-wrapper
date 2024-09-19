@@ -8,10 +8,14 @@
 
 #pragma once
 
-#include <string>
+#include "rule/input.hpp"
+#include "rule/rule.hpp"
 
-class UnixUtil {
+class RuleEngine {
 public:
-  [[noreturn]]
-  static void Die(const std::string &baseMessage, const int exitCode);
+  bool Evaluate(Input &input) const;
+
+private:
+  Rule *rules;
+  Action *policyAction;
 };

@@ -34,3 +34,5 @@
 #define EC_BADCOMMANDLINE 7
 #define EC_FORK 8
 #define EC_INIT_OFFSET 10
+
+#define ETH_ADDR_LEN 6

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -8,10 +8,12 @@
 
 #pragma once
 
-#include <boost/asio/ip/udp.hpp>
+#include "net/netcommon.h"
+#include <boost/asio/generic/raw_protocol.hpp>
 #include <cstdint>
 #include <ctime>
 #include <random>
+#include <sys/types.h>
 
 #define HASH_SIZE 32
 
@@ -20,7 +22,7 @@
 #define PEER_HAS_PSUEDO_HEADER 4
 #define PEER_USE_DEF_PKT_SZ 8
 
-using boost::asio::ip::udp;
+using boost::asio::generic::raw_protocol;
 
 struct UpstreamServerInfo;
 
@@ -29,7 +31,10 @@ public:
   struct PeerRequestRecord {
     // Same request can come from multiple sources
     struct PeerSource {
-      udp::endpoint endpoint;
+      ulong index;
+      raw_protocol::endpoint endpoint;
+      IpAddress ipAddress;
+      Port ipPort;
       bool ipv4;
       uint16_t originalId;
       PeerSource *next;
