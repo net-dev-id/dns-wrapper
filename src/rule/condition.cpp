@@ -7,16 +7,15 @@
  */
 
 #include "rule/condition.hpp"
-#include "net/packet.hpp"
 #include "rule/input.hpp"
 #include <algorithm>
 
 bool IpCondition::IsMatch(const Input &input) const {
-  return (ipv4 && input.ipacket->IpSource.Ipv4 == ipaddr.Ipv4) ||
+  return (ipv4 && input.ipaddr.Ipv4 == ipaddr.Ipv4) ||
          (!ipv4 &&
-          std::ranges::equal(input.ipacket->IpSource.Ipv6, ipaddr.Ipv6));
+          std::ranges::equal(input.ipaddr.Ipv6, ipaddr.Ipv6));
 }
 
 bool MacCondition::IsMatch(const Input &input) const {
-  return std::ranges::equal(input.ipacket->EthSource, b);
+  return std::ranges::equal(input.ethaddr.v, b.v);
 }

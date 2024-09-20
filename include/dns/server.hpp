@@ -8,11 +8,12 @@
 
 #pragma once
 
+#include "bookkeeping/ethmappings.hpp"
 #include "bookkeeping/peer.hpp"
 #include "bookkeeping/server.hpp"
 #include "config.hpp"
 #include "dnspacket.hpp"
-#include "net/packet.hpp"
+#include "net/netcommon.h"
 #include "rule/engine.hpp"
 
 #include <boost/asio/generic/raw_protocol.hpp>
@@ -22,11 +23,13 @@
 #include <boost/compute/detail/lru_cache.hpp>
 #include <boost/system/detail/error_code.hpp>
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #define ONE_HOUR 1 * 60 * 60;
 
 using boost::asio::generic::raw_protocol;
+using boost::asio::ip::udp;
 
 class RuleEngine;
 
@@ -34,7 +37,7 @@ struct SocketData {
   std::size_t index;
   raw_protocol::socket *socket;
   raw_protocol::endpoint endpoint;
-  BytePacketBuffer recvBuffer;
+  RawPacketBuffer recvBuffer;
 };
 
 class DnsServer {
@@ -43,30 +46,46 @@ public:
             const ConfigReader *configReader);
   ~DnsServer();
 
-  void Resolve(const SocketData *d, DnsPacket *p, const InPacket *ip);
+  void Resolve(DnsPacket *p, const udp::endpoint *e, const bool i);
 
-  void Redirect(const SocketData *d, DnsPacket *p, const InPacket *ip);
+  void Redirect(DnsPacket *p, const udp::endpoint *e, const bool i);
 
 private:
-  void receive(boost::system::error_code ec, std::size_t, bool ipv4,
-               SocketData &d);
+  void initUpstreamServers();
+  void startRawSocketScan(boost::asio::io_context &io_context,
+                          const uint16_t &port);
+  void startDnsListeners(const uint16_t &port);
 
-  bool processRequest(const SocketData &d, DnsPacket &packet, int &res,
-                      const InPacket &ipacket);
+  void receive(boost::system::error_code ec, std::size_t, bool ipv4);
+  void receiveRawData(boost::system::error_code ec, std::size_t, bool ipv4,
+                      SocketData &d);
+
+  bool processRequest(DnsPacket &packet, int &res,
+                      const udp::endpoint &endpoint, bool ipv4);
   bool processUpstreamResponse(DnsPacket &packet, int &res,
-                               const InPacket &ipacket);
+                               udp::endpoint &endpoint);
 
-  void resolve(const SocketData &d, DnsPacket &packet, const InPacket &ipacket);
-  void sendPacket(const SocketData &d, const DnsPacket &packet,
-                  const InPacket &ipacket);
+  void resolve(DnsPacket &packet, const udp::endpoint &endpoint, bool ipv4);
+  void sendPacket(const DnsPacket &packet, const udp::endpoint &endpoint,
+                  bool ipv4);
   void updateErrorResponse(DnsPacket &packet, const uint8_t &errCode);
   void updateRedirectResponse(DnsPacket &packet) const;
+
+  void receive4();
+  void receive6();
   void receive(SocketData &d);
 
 private:
   RuleEngine ruleEngine;
   PeerRequests peerRequests;
+  EthMappings ethmappings;
 
+  udp::socket socket4;
+  udp::endpoint endpoint4;
+  BytePacketBuffer recvBuffer4;
+  udp::socket socket6;
+  udp::endpoint endpoint6;
+  BytePacketBuffer recvBuffer6;
   std::vector<SocketData> socketData;
 
   const ConfigReader *configReader;

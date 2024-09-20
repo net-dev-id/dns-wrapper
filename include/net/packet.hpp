@@ -13,7 +13,7 @@
 #include <cstdint>
 
 struct InPacket {
-  int Read(BytePacketBuffer *bpb);
+  int Read(RawPacketBuffer *bpb);
 
   EthAddress EthDestination;
   EthAddress EthSource;

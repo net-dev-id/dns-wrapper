@@ -8,14 +8,19 @@
 
 #pragma once
 
-struct InPacket;
+#include "net/netcommon.h"
+#include <boost/asio/ip/udp.hpp>
+
+using boost::asio::ip::udp;
+
 class DnsPacket;
 class DnsServer;
-struct SocketData;
 
 struct Input {
-  const InPacket *ipacket;
   DnsPacket *packet;
   DnsServer *server;
-  const SocketData *socketData;
+  const udp::endpoint *endpoint;
+  const bool ipv4;
+  const EthAddress &ethaddr;
+  const IpAddress &ipaddr;
 };

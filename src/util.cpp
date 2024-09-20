@@ -31,3 +31,8 @@ void DumpHex(std::array<uint8_t, MAX_PACKET_SZ> data, const std::size_t n) {
     cout << endl;
   }
 }
+
+std::time_t GetNow() {
+  using std::chrono::system_clock;
+  return system_clock::to_time_t(system_clock::now());
+}

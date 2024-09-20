@@ -73,18 +73,27 @@
 
 #define PACKET_SZ_VALID(bb, bytes) (bb->pos + bytes <= bb->size)
 
-struct BytePacketBuffer {
-  std::array<uint8_t, PACKET_SZ_MAX> buf{};
+template <std::size_t N> struct PacketBuffer {
+  std::array<uint8_t, N> buf{};
   std::size_t pos{0};
   std::size_t size{0};
   std::size_t udp{0};
 };
 
-typedef uint8_t EthAddress[ETH_ADDR_LEN];
+typedef PacketBuffer<MAX_PACKET_SZ> BytePacketBuffer;
+typedef PacketBuffer<PACKET_SZ_MAX> RawPacketBuffer;
+
+union EthAddress {
+  uint8_t v[ETH_ADDR_LEN];
+};
+
+#define IPV6_SIZE 4
 
 union IpAddress {
   uint32_t Ipv4;
-  uint32_t Ipv6[4];
+  uint8_t Ipv4v[4];
+  uint32_t Ipv6[IPV6_SIZE];
+  uint8_t Ipv6v[4 * IPV6_SIZE];
 };
 
 typedef uint16_t Port;

@@ -38,16 +38,16 @@ bool isVlan(uint16_t protocol) {
   return protocol == ETH_P_8021Q || protocol == ETH_P_8021AD;
 }
 
-int InPacket::Read(BytePacketBuffer *bpb) {
+int InPacket::Read(RawPacketBuffer *bpb) {
   if (bpb->pos + ETH_HDR_SIZE > bpb->size) {
     return E_FORMERR;
   }
 
   std::copy(bpb->buf.begin() + bpb->pos,
-            bpb->buf.begin() + bpb->pos + ETH_HDR_SIZE, EthDestination);
+            bpb->buf.begin() + bpb->pos + ETH_HDR_SIZE, EthDestination.v);
   bpb->pos += ETH_ADDR_LEN;
   std::copy(bpb->buf.begin() + bpb->pos,
-            bpb->buf.begin() + bpb->pos + ETH_HDR_SIZE, EthSource);
+            bpb->buf.begin() + bpb->pos + ETH_HDR_SIZE, EthSource.v);
   bpb->pos += ETH_ADDR_LEN;
 
   VREAD_U16(EthProtocol, bpb);
@@ -185,13 +185,15 @@ int InPacket::Read(BytePacketBuffer *bpb) {
   return E_NOERROR;
 }
 
-std::ostream &operator<<(std::ostream &stream, const InPacket &p) {
+std::ostream &operator<<(std::ostream &stream, [[maybe_unused]] const InPacket &p) {
+  /*
   if (p.Ipv4) {
-    stream << p.IpSource.Ipv4 << ":" << p.SourcePort;
+    stream << std::hex << p.IpSource.Ipv4 << ":" << p.SourcePort;
   } else {
-    stream << p.IpSource.Ipv6[0] << ":" << p.IpSource.Ipv6[1] << ":"
-           << p.IpSource.Ipv6[2] << ":" << p.IpSource.Ipv6[3] << ":"
-           << p.IpSource.Ipv6[4] << ":" << p.IpSource.Ipv6[5];
+    stream << p.IpSource.Ipv6v[0] << ":" << p.IpSource.Ipv6v[1] << ":"
+           << p.IpSource.Ipv6v[2] << ":" << p.IpSource.Ipv6v[3] << ":"
+           << p.IpSource.Ipv6v[4] << ":" << p.IpSource.Ipv6v[5];
   }
+  */
   return stream;
 }

@@ -10,9 +10,9 @@
 #include "dns/server.hpp"
 
 void DNSAction::Run(const Input &input) const {
-  input.server->Resolve(input.socketData, input.packet, input.ipacket);
+  input.server->Resolve(input.packet, input.endpoint, input.ipv4);
 }
 
 void RedirectAction::Run(const Input &input) const {
-  input.server->Redirect(input.socketData, input.packet, input.ipacket);
+  input.server->Redirect(input.packet, input.endpoint, input.ipv4);
 }

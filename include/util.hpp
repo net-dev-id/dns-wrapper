@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "dns/dnscommon.hpp"
+#include "net/netcommon.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -16,3 +16,5 @@
 char *GetUserName(void);
 
 void DumpHex(std::array<uint8_t, MAX_PACKET_SZ>, const std::size_t n);
+
+std::time_t GetNow();

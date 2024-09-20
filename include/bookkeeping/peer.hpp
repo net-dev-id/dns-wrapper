@@ -8,8 +8,7 @@
 
 #pragma once
 
-#include "net/netcommon.h"
-#include <boost/asio/generic/raw_protocol.hpp>
+#include <boost/asio/ip/udp.hpp>
 #include <cstdint>
 #include <ctime>
 #include <random>
@@ -22,7 +21,7 @@
 #define PEER_HAS_PSUEDO_HEADER 4
 #define PEER_USE_DEF_PKT_SZ 8
 
-using boost::asio::generic::raw_protocol;
+using boost::asio::ip::udp;
 
 struct UpstreamServerInfo;
 
@@ -31,10 +30,7 @@ public:
   struct PeerRequestRecord {
     // Same request can come from multiple sources
     struct PeerSource {
-      std::size_t index;
-      raw_protocol::endpoint endpoint;
-      IpAddress ipAddress;
-      Port ipPort;
+      udp::endpoint endpoint;
       bool ipv4;
       uint16_t originalId;
       PeerSource *next;
