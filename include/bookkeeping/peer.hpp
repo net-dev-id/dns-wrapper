@@ -31,7 +31,7 @@ public:
   struct PeerRequestRecord {
     // Same request can come from multiple sources
     struct PeerSource {
-      ulong index;
+      std::size_t index;
       raw_protocol::endpoint endpoint;
       IpAddress ipAddress;
       Port ipPort;

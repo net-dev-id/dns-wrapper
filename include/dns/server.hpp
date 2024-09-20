@@ -31,7 +31,7 @@ using boost::asio::generic::raw_protocol;
 class RuleEngine;
 
 struct SocketData {
-  ulong index;
+  std::size_t index;
   raw_protocol::socket *socket;
   raw_protocol::endpoint endpoint;
   BytePacketBuffer recvBuffer;

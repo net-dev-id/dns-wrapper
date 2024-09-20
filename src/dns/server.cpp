@@ -12,9 +12,10 @@
 #include <ifaddrs.h>
 #define IF_CLASS ifaddrs
 #else /* WIN32 */
+#include <winsock2.h>
 #include <iphlpapi.h>
+#include <Windows.h>
 #define IF_CLASS IP_ADAPTER_ADDRESSES
-#include <ws2tcpip.h>
 #endif /* __linux */
 
 #include <boost/asio.hpp>

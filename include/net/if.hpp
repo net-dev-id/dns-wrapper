@@ -15,15 +15,22 @@ private:
 
 public:
   Interface(T *addrs) : start(addrs), ptr(addrs) {}
-  ~Interface();
+  ~Interface() {}
 
   int Index() const;
   std::string Name() const;
   T *Start() const { return start; }
   T *Ptr() const { return ptr; }
 
-  Interface<T> &operator++();   // prefix
-  Interface<T> operator++(int); // postfix
+  Interface<T>& operator++() { 
+    // prefix - this will be implemented only in specialization
+    return *this;
+  }
+
+  Interface<T> operator++(int) { 
+    // postfix - this will be implemented only in specialization
+    return *this;
+  }
   bool operator==(const Interface<T> &b) const { return ptr == b.ptr; }
   bool operator!=(const Interface<T> &b) const { return ptr != b.ptr; }
 };
@@ -56,7 +63,7 @@ public:
     bool operator!=(const Iterator &b) { return addrs != b.addrs; }
   };
 
-  NetInterface();
+  NetInterface() : start(nullptr), finish(nullptr) {}
 
   Iterator begin() { return start; }
 
