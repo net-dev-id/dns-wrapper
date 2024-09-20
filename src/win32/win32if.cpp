@@ -6,10 +6,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <Windows.h>
-#include <iphlpapi.h>
-#include <string>
 #include <winsock2.h>
+
+#include <iphlpapi.h>
+
+#include <Windows.h>
+
+#include <string>
 
 #include "common.h"
 #include "log.hpp"
