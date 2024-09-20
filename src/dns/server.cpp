@@ -11,10 +11,10 @@
 #include <algorithm>
 #include <boost/asio/generic/raw_protocol.hpp>
 #include <boost/asio/io_context.hpp>
-#include <sys/socket.h>
 #ifdef __linux
 #include <arpa/inet.h>
 #include <ifaddrs.h>
+#include <sys/socket.h>
 #define IF_CLASS ifaddrs
 #else /* WIN32 */
 #include <winsock2.h>
