@@ -15,8 +15,8 @@
 #include "net/packet.hpp"
 #include "rule/engine.hpp"
 
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/generic/raw_protocol.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/ip/v6_only.hpp>
 #include <boost/compute/detail/lru_cache.hpp>

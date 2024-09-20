@@ -7,39 +7,41 @@
  */
 
 #include "log.hpp"
-#include <windows.h>
 #include <Lmcons.h>
+#include <windows.h>
 
-char* GetUserName(void) {
-	static char userName[UNLEN + 1];
-	DWORD len = UNLEN + 1;
-	if (!GetUserName(userName, &len)) {
-		return nullptr;
-	}
+char *GetUserName(void) {
+  static char userName[UNLEN + 1];
+  DWORD len = UNLEN + 1;
+  if (!GetUserName(userName, &len)) {
+    return nullptr;
+  }
 
-	return userName;
-}
-
-[[noreturn]] 
-void Die(const std::string& baseMessage, const int exitCode) {
-	char* errMesssage = strerror(errno);
-
-	LFATAL << baseMessage << ": " << errMesssage << std::endl;
-	exit(exitCode);
+  return userName;
 }
 
 [[noreturn]]
-void WinDie(const std::string& baseMessage, const DWORD res, const int exitCode) {
-	char* buf = nullptr;
+void Die(const std::string &baseMessage, const int exitCode) {
+  char *errMesssage = strerror(errno);
 
-	LERROR << baseMessage << std::endl;
+  LFATAL << baseMessage << ": " << errMesssage << std::endl;
+  exit(exitCode);
+}
 
-	if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL, res, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR)&buf, 0, NULL)) {
-		LERROR << "Error: " << buf << std::endl;
-		LocalFree(buf);
-	}
-	exit(exitCode);
+[[noreturn]]
+void WinDie(const std::string &baseMessage, const DWORD res,
+            const int exitCode) {
+  char *buf = nullptr;
+
+  LERROR << baseMessage << std::endl;
+
+  if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                        FORMAT_MESSAGE_FROM_SYSTEM |
+                        FORMAT_MESSAGE_IGNORE_INSERTS,
+                    NULL, res, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                    (LPTSTR)&buf, 0, NULL)) {
+    LERROR << "Error: " << buf << std::endl;
+    LocalFree(buf);
+  }
+  exit(exitCode);
 }

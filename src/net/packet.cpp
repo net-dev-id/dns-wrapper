@@ -14,13 +14,13 @@
 #ifdef __linux
 #include <linux/if_ether.h>
 #include <netinet/in.h>
-#else /* WIN32 */
-#define ETH_P_IP	0x0800		/* Internet Protocol packet	*/
-#define ETH_P_IPV6	0x86DD		/* IPv6 over bluebook		*/
-#define ETH_P_8021Q	0x8100          /* 802.1Q VLAN Extended Header  */
-#define ETH_P_8021AD	0x88A8          /* 802.1ad Service VLAN		*/
-#define IPPROTO_UDP	17 /* User Datagram Protocol.  */
-#endif /* __linux */
+#else                       /* WIN32 */
+#define ETH_P_IP 0x0800     /* Internet Protocol packet	*/
+#define ETH_P_IPV6 0x86DD   /* IPv6 over bluebook		*/
+#define ETH_P_8021Q 0x8100  /* 802.1Q VLAN Extended Header  */
+#define ETH_P_8021AD 0x88A8 /* 802.1ad Service VLAN		*/
+#define IPPROTO_UDP 17      /* User Datagram Protocol.  */
+#endif                      /* __linux */
 
 #define ETH_HDR_SIZE 14
 #define VLAN_HDR_SIZE 4

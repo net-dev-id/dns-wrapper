@@ -22,12 +22,12 @@ public:
   T *Start() const { return start; }
   T *Ptr() const { return ptr; }
 
-  Interface<T>& operator++() { 
+  Interface<T> &operator++() {
     // prefix - this will be implemented only in specialization
     return *this;
   }
 
-  Interface<T> operator++(int) { 
+  Interface<T> operator++(int) {
     // postfix - this will be implemented only in specialization
     return *this;
   }
