@@ -88,6 +88,15 @@ add_executable(${EXEC_NAME} app/main.cpp) # Name of exec. and location of file.
 target_link_libraries(${EXEC_NAME} ${LIBRARY_NAME}) # Link the executable to library (if it uses it).
 target_set_warnings(${EXEC_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 target_enable_lto(${EXEC_NAME} optimized) # enable link-time-optimization if available for non-debug configurations
+
+if (WIN32)
+  target_link_libraries(${EXEC_NAME} iphlpapi)
+endif(WIN32)
+
+################################################################################
+## BOOST ##
+###########
+#set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 #set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost CONFIG REQUIRED COMPONENTS system program_options log thread log_setup)

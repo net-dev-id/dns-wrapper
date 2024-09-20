@@ -7,8 +7,10 @@
  */
 
 #include "log.hpp"
-#include <Lmcons.h>
+
 #include <windows.h>
+
+#include <Lmcons.h>
 
 char *GetUserName(void) {
   static char userName[UNLEN + 1];
