@@ -10,6 +10,8 @@
 
 #include "net/netcommon.h"
 #include "rule/input.hpp"
+#include <boost/interprocess/mapped_region.hpp>
+#include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/sync/interprocess_condition.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/thread/locks.hpp>
@@ -61,7 +63,7 @@ public:
                   const IpAddressData *target);
   bool InsertRule(const RuleType &ruleType, const ActionType &actionType,
                   const IpAddressData *ipd, const union EthAddress *eth,
-                  const IpAddressData *target, const int &index);
+                  const IpAddressData *target, const std::size_t &index);
   bool DeleteRule(const std::size_t &index);
   bool ClearRules();
   bool SetPolicy(const ActionType &actionType,
@@ -70,7 +72,7 @@ public:
 
   bool Evaluate(Input &input) const;
 
-  friend std::ostream &operator>>(std::ostream &ostream,
+  friend std::ostream &operator<<(std::ostream &ostream,
                                   const ShmRuleEngine &engine);
 
 private:
@@ -82,4 +84,7 @@ private:
 
   bool mainProcess;
   RuleData *ruleData;
+
+  boost::interprocess::shared_memory_object shm;
+  boost::interprocess::mapped_region region;
 };
