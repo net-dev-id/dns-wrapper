@@ -261,9 +261,9 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
           "target IPv6 address for redirect");
 
       po::parsed_options policyParsed = po::command_line_parser(opts)
-                                      .options(desc)
-                                      .allow_unregistered()
-                                      .run();
+                                            .options(desc)
+                                            .allow_unregistered()
+                                            .run();
       po::variables_map vm2;
       po::store(policyParsed, vm2);
 

@@ -6,8 +6,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "common.h"
 #include "rule/shm.hpp"
+#include "common.h"
 #include "dns/server.hpp"
 #include "log.hpp"
 #include "net/netcommon.h"

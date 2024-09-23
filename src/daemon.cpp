@@ -67,7 +67,8 @@ void Daemon::Initialize() {
 
 int Daemon::Start() {
   try {
-    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader, &ruleEngine);
+    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader,
+                        &ruleEngine);
 
     boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);
     signals.async_wait([&](boost::system::error_code ec, int signo) {
