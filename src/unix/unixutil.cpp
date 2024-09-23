@@ -39,12 +39,21 @@ int ToIpAddress(const std::string &ipaddr, const bool &ipv4,
   int af;
   if (ipv4) {
     af = AF_INET;
-
   } else {
     af = AF_INET6;
   }
 
-  return inet_pton(af, ipaddr.c_str(), address);
+  int r = inet_pton(af, ipaddr.c_str(), address);
+  if (r == 0) {
+    LERROR << "ipaddr does not contain a character string representing a valid "
+              "network address"
+           << std::endl;
+  } else if (r < 1) {
+    LERROR << "Error converting ip address to string: " << strerror(errno)
+           << std::endl;
+  }
+
+  return r;
 }
 
 int IpAddressToString(const union IpAddress &ipaddr, const bool &ipv4,
@@ -59,7 +68,8 @@ int IpAddressToString(const union IpAddress &ipaddr, const bool &ipv4,
 
   const char *t = inet_ntop(af, &ipaddr, buf, INET6_ADDRSTRLEN + 1);
   if (t == nullptr) {
-    LERROR << "Error converting ip address to string: " << strerror(errno);
+    LERROR << "Error converting ip address to string: " << strerror(errno)
+           << std::endl;
     return 0;
   }
 

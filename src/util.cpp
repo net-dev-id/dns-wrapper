@@ -17,13 +17,13 @@
 #define ROW_SIZE 16
 
 #define HEX "[0-9a-eA-E]"
-#define HEXW HEX HEX "?"
+#define HEXW HEX "{1,2}"
 #define IPV4 "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
-#define IPV6 HEXW
+#define IPV6 HEX "{1,4}"
 
 static std::regex ipRegex4(IPV4 "." IPV4 "." IPV4 "." IPV4);
-static std::regex ipRegex6(IPV6 "(:" IPV6 "){15}");
-static std::regex ethRegex(HEXW "(:" HEX "{5})");
+static std::regex ipRegex6(IPV6 "(:" IPV6 "){7}");
+static std::regex ethRegex(HEXW "(:" HEXW "){5}");
 
 void DumpHex(std::array<uint8_t, MAX_PACKET_SZ> data, const std::size_t n) {
   using namespace std;
@@ -67,7 +67,7 @@ int ToEthAddress(const std::string &ethaddr, EthAddress *address) {
 
   std::stringstream ss(ethaddr);
   std::string token;
-  int i =0;
+  int i = 0;
   while (std::getline(ss, token, ':')) {
     address->v[i++] = std::stoi(token, nullptr, 16);
   }

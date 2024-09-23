@@ -9,16 +9,17 @@
 #include "rule/parse.hpp"
 #include "args.hpp"
 #include "common.h"
-#include "daemon.hpp"
 #include "log.hpp"
 #include "net/netcommon.h"
 #include "rule/common.h"
+#include "rule/shm.hpp"
 #include "util.hpp"
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
+#include <climits>
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -88,9 +89,6 @@ static ActionType getActionType(const std::string &action,
 
 Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
                                  [[maybe_unused]] po::variables_map &vm) {
-
-  ShmRuleEngine engine(false);
-
   po::options_description rules("rules options");
   rules.add_options()(OPTION_HELP ",h", "produce help message")(
       OPTION_COMMAND, po::value<std::string>(), "command to execute")(
@@ -113,7 +111,12 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
   po::store(ruleParsed, vm1);
 
   if (vm1.contains(OPTION_COMMAND)) {
+    ShmRuleEngine engine(false);
+
     std::string cmd = vm1[OPTION_COMMAND].as<std::string>();
+    std::vector<std::string> opts =
+        po::collect_unrecognized(ruleParsed.options, po::include_positional);
+    opts.erase(opts.begin());
     if (cmd == OPTION_ADD) {
       po::options_description desc("rules add options");
       desc.add_options()(OPTION_HELP ",h", "produce help message")(
@@ -131,7 +134,7 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
                                          .allow_unregistered()
                                          .run();
       po::variables_map vm1;
-      po::store(ruleParsed, vm1);
+      po::store(addParsed, vm1);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules add", desc);
@@ -144,10 +147,10 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       union EthAddress eth;
       bool found = false;
       bool hasTarget = false;
-      int index = -1;
+      std::size_t index = SIZE_MAX;
 
       if (vm1.count(OPTION_INDEX)) {
-        index = vm1[OPTION_INDEX].as<int>();
+        index = vm1[OPTION_INDEX].as<std::size_t>();
       }
 
       if (vm1.count(OPTION_IP)) {
@@ -190,7 +193,7 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       }
 
       bool res;
-      if (index < 1) {
+      if (index == SIZE_MAX) {
         res = engine.AppendRule(ruleType, actionType, &ipd, &eth, &target);
       } else {
         res =
@@ -214,7 +217,7 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
                                          .allow_unregistered()
                                          .run();
       po::variables_map vm1;
-      po::store(ruleParsed, vm1);
+      po::store(addParsed, vm1);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules delete", desc);
@@ -222,7 +225,7 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       }
 
       if (vm1.count(OPTION_INDEX)) {
-        std::size_t index = vm1[OPTION_INDEX].as<int>();
+        std::size_t index = vm1[OPTION_INDEX].as<std::size_t>();
         if (!engine.DeleteRule(index)) {
           LERROR << "Error deleting rule" << std::endl;
           return Args::ExitWithError;
@@ -241,7 +244,11 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
         return Args::ExitWithNoError;
       }
 
-      engine.ClearRules();
+      if (cmd == OPTION_CLEAR) {
+        engine.ClearRules();
+      } else {
+        std::cout << engine << std::endl;
+      }
 
       return Args::ExitWithNoError;
     } else if (cmd == OPTION_POLICY) {
@@ -254,12 +261,12 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
           OPTION_TARGET_6 ",6", po::value<std::string>(),
           "target IPv6 address for redirect");
 
-      po::parsed_options addParsed = po::command_line_parser(opts)
-                                         .options(desc)
-                                         .allow_unregistered()
-                                         .run();
+      po::parsed_options parsed = po::command_line_parser(opts)
+                                      .options(desc)
+                                      .allow_unregistered()
+                                      .run();
       po::variables_map vm1;
-      po::store(ruleParsed, vm1);
+      po::store(parsed, vm1);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules add", desc);
@@ -267,8 +274,8 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       }
 
       ActionType actionType;
-      if (vm.count(OPTION_ACTION)) {
-        std::string a = vm[OPTION_ACTION].as<std::string>();
+      if (vm1.count(OPTION_ACTION)) {
+        std::string a = vm1[OPTION_ACTION].as<std::string>();
         actionType = getActionType(a);
       } else {
         throw po::validation_error(

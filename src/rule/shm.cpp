@@ -13,8 +13,6 @@
 #include "rule/common.h"
 #include "rule/input.hpp"
 #include <algorithm>
-#include <boost/interprocess/mapped_region.hpp>
-#include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/thread/lock_types.hpp>
@@ -28,10 +26,6 @@
 using namespace boost::interprocess;
 
 ShmRuleEngine::ShmRuleEngine(bool mainProcess) : mainProcess(mainProcess) {
-  using namespace boost::interprocess;
-
-  shared_memory_object shm;
-
   if (mainProcess) {
     shared_memory_object::remove(SHM_NAME);
 
@@ -41,18 +35,22 @@ ShmRuleEngine::ShmRuleEngine(bool mainProcess) : mainProcess(mainProcess) {
     shm = shared_memory_object(open_only, SHM_NAME, read_write);
   }
 
-  mapped_region region(shm, read_write);
+  region = mapped_region(shm, read_write);
   void *addr = region.get_address();
 
   if (mainProcess) {
-    std::memset(addr, 0, sizeof(RuleData));
+    // std::memset(addr, 0, sizeof(RuleData));
     ruleData = new (addr) RuleData;
   } else {
     ruleData = static_cast<RuleData *>(addr);
   }
 }
 
-ShmRuleEngine::~ShmRuleEngine() { shared_memory_object::remove(SHM_NAME); }
+ShmRuleEngine::~ShmRuleEngine() {
+  if (mainProcess) {
+    shared_memory_object::remove(SHM_NAME);
+  }
+}
 
 bool ShmRuleEngine::Evaluate(Input &input) const {
   scoped_lock<interprocess_mutex> lock(ruleData->mutex);
@@ -118,24 +116,24 @@ bool ShmRuleEngine::AppendRule(const RuleType &ruleType,
                                const IpAddressData *ipd,
                                const union EthAddress *eth,
                                const IpAddressData *target) {
-  return InsertRule(ruleType, actionType, ipd, eth, target, -1);
+  // This function is not using InsertRule as mutex needs
+  // to be locked before reading ruleData->size.
+
+  scoped_lock<interprocess_mutex> lock(ruleData->mutex);
+  Rule rule{{ruleType, actionType}, ipd, eth, target};
+  std::size_t aIndex = ruleData->size;
+  return insertRules(&rule, 1, aIndex);
 }
 
 bool ShmRuleEngine::InsertRule(const RuleType &ruleType,
                                const ActionType &actionType,
                                const IpAddressData *ipd,
                                const union EthAddress *eth,
-                               const IpAddressData *target, const int &index) {
+                               const IpAddressData *target,
+                               const std::size_t &index) {
   scoped_lock<interprocess_mutex> lock(ruleData->mutex);
   Rule rule{{ruleType, actionType}, ipd, eth, target};
-  std::size_t aIndex;
-  if (index < 0) {
-    aIndex = ruleData->size;
-  } else {
-    aIndex = index;
-  }
-
-  return insertRules(&rule, 1, aIndex);
+  return insertRules(&rule, 1, index);
 }
 
 bool ShmRuleEngine::DeleteRule(const std::size_t &index) {
@@ -195,6 +193,12 @@ Rule ShmRuleEngine::nextRule(uint8_t **loc) const {
 std::size_t ShmRuleEngine::insertRules(const Rule *rules,
                                        const std::size_t &size,
                                        const std::size_t &index) {
+  if (index > ruleData->size) {
+    LERROR << "Specified index: " << index
+           << " is greater than list size: " << ruleData->size << std::endl;
+    return 0;
+  }
+
   // First calculate size of data to be inserted
   std::size_t i = 0;
 
@@ -279,13 +283,14 @@ bool ShmRuleEngine::deleteRule(const std::size_t &index) {
   // If last item is to be deleted
   if (index == ruleData->size - 1) {
     ruleData->size--;
+    return true;
   }
 
   std::size_t i = 0;
 
   // Skip index - 1 items
   uint8_t *t = ruleData->data;
-  for (i = 0; i < index - 1; i++) {
+  for (i = 0; i < index; i++) {
     nextRule(&t);
   }
 
@@ -323,14 +328,14 @@ static inline std::ostream &showParam(std::ostream &ostream, const char *what,
   return ostream;
 }
 
-std::ostream &operator>>(std::ostream &ostream, const ShmRuleEngine &engine) {
+std::ostream &operator<<(std::ostream &ostream, const ShmRuleEngine &engine) {
   ostream << "start" << std::endl;
 
   uint8_t *t = engine.ruleData->data;
-  for (std::size_t i; i < engine.ruleData->size; i++) {
+  for (std::size_t i = 0; i < engine.ruleData->size; i++) {
     Rule r = engine.nextRule(&t);
 
-    showParam(ostream, OPTION_ADD);
+    ostream << OPTION_ADD << " ";
 
     bool space = false;
     if (r.header.ruleType == RuleType::IpAddress ||
@@ -338,33 +343,32 @@ std::ostream &operator>>(std::ostream &ostream, const ShmRuleEngine &engine) {
       std::string address;
       space = true;
       IpAddressToString(r.ipd->ipaddr, r.ipd->ipv4, address);
-      showParam(ostream, OPTION_IP) << " " << address;
+      showParam(ostream, OPTION_IP) << address;
     }
 
     if (r.header.ruleType == RuleType::EthAddress ||
         r.header.ruleType == RuleType::IpAndEthAddress) {
 
       showParam(ostream, OPTION_MAC, space)
-          << " " << r.eth->v[0] << ":" << r.eth->v[1] << ":" << r.eth->v[2]
-          << ":" << r.eth->v[3] << ":" << r.eth->v[4] << ":" << r.eth->v[5];
+          << r.eth->v[0] << ":" << r.eth->v[1] << ":" << r.eth->v[2] << ":"
+          << r.eth->v[3] << ":" << r.eth->v[4] << ":" << r.eth->v[5];
     }
 
     showParam(ostream, OPTION_ACTION, true)
-        << " " << (r.header.actionType == ActionType::Dns ? "dns" : "redirect");
+        << (r.header.actionType == ActionType::Dns ? "dns" : "redirect");
 
     if (r.header.actionType == ActionType::Redirect) {
       std::string address;
-      space = true;
-      IpAddressToString(r.ipd->ipaddr, r.ipd->ipv4, address);
-      showParam(ostream, OPTION_TARGET, true) << " " << address;
+      IpAddressToString(r.target->ipaddr, r.target->ipv4, address);
+      showParam(ostream, OPTION_TARGET, true) << address;
     }
 
-    ostream << std::endl;
+    ostream << " # " << i << std::endl;
   }
 
-  showParam(ostream, OPTION_POLICY)
-      << (engine.ruleData->policy.action == ActionType::Dns ? "dns"
-                                                            : "redirect");
+  ostream << OPTION_POLICY << " "
+          << (engine.ruleData->policy.action == ActionType::Dns ? "dns"
+                                                                : "redirect");
 
   if (engine.ruleData->policy.action == ActionType::Redirect) {
     std::string address;
