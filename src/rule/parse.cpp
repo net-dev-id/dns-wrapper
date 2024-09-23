@@ -114,8 +114,7 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
     ShmRuleEngine engine(false);
 
     std::string cmd = vm1[OPTION_COMMAND].as<std::string>();
-    std::vector<std::string> opts =
-        po::collect_unrecognized(ruleParsed.options, po::include_positional);
+    opts = po::collect_unrecognized(ruleParsed.options, po::include_positional);
     opts.erase(opts.begin());
     if (cmd == OPTION_ADD) {
       po::options_description desc("rules add options");
@@ -133,8 +132,8 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
                                          .options(desc)
                                          .allow_unregistered()
                                          .run();
-      po::variables_map vm1;
-      po::store(addParsed, vm1);
+      po::variables_map vm2;
+      po::store(addParsed, vm2);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules add", desc);
@@ -149,25 +148,25 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       bool hasTarget = false;
       std::size_t index = SIZE_MAX;
 
-      if (vm1.count(OPTION_INDEX)) {
-        index = vm1[OPTION_INDEX].as<std::size_t>();
+      if (vm2.count(OPTION_INDEX)) {
+        index = vm2[OPTION_INDEX].as<std::size_t>();
       }
 
-      if (vm1.count(OPTION_IP)) {
+      if (vm2.count(OPTION_IP)) {
         found = true;
         ruleType = RuleType::IpAddress;
-        std::string ipa = vm1[OPTION_IP].as<std::string>();
+        std::string ipa = vm2[OPTION_IP].as<std::string>();
         ipd.ipv4 = parseIpAddress(ipa, OPTION_IP, ipd.ipaddr);
       }
 
-      if (vm1.count(OPTION_MAC)) {
-        found = true;
-        if (ruleType == RuleType::IpAddress) {
+      if (vm2.count(OPTION_MAC)) {
+        if (found) {
           ruleType = RuleType::IpAndEthAddress;
         } else {
           ruleType = RuleType::EthAddress;
         }
-        std::string etha = vm1[OPTION_MAC].as<std::string>();
+        found = true;
+        std::string etha = vm2[OPTION_MAC].as<std::string>();
         if (ToEthAddress(etha, &eth) != 1) {
           throw po::validation_error(
               po::validation_error::kind_t::invalid_option_value, OPTION_MAC,
@@ -181,14 +180,14 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
             OPTION_IP " or " OPTION_MAC, "");
       }
 
-      if (vm1.count(OPTION_TARGET)) {
+      if (vm2.count(OPTION_TARGET)) {
         hasTarget = true;
-        std::string ipt = vm1[OPTION_TARGET].as<std::string>();
+        std::string ipt = vm2[OPTION_TARGET].as<std::string>();
         target.ipv4 = parseIpAddress(ipt, OPTION_TARGET, target.ipaddr);
       }
 
-      if (vm1.count(OPTION_ACTION)) {
-        std::string a = vm1[OPTION_ACTION].as<std::string>();
+      if (vm2.count(OPTION_ACTION)) {
+        std::string a = vm2[OPTION_ACTION].as<std::string>();
         actionType = getActionType(a, hasTarget);
       }
 
@@ -216,16 +215,16 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
                                          .options(desc)
                                          .allow_unregistered()
                                          .run();
-      po::variables_map vm1;
-      po::store(addParsed, vm1);
+      po::variables_map vm2;
+      po::store(addParsed, vm2);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules delete", desc);
         return Args::ExitWithNoError;
       }
 
-      if (vm1.count(OPTION_INDEX)) {
-        std::size_t index = vm1[OPTION_INDEX].as<std::size_t>();
+      if (vm2.count(OPTION_INDEX)) {
+        std::size_t index = vm2[OPTION_INDEX].as<std::size_t>();
         if (!engine.DeleteRule(index)) {
           LERROR << "Error deleting rule" << std::endl;
           return Args::ExitWithError;
@@ -261,12 +260,12 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
           OPTION_TARGET_6 ",6", po::value<std::string>(),
           "target IPv6 address for redirect");
 
-      po::parsed_options parsed = po::command_line_parser(opts)
+      po::parsed_options policyParsed = po::command_line_parser(opts)
                                       .options(desc)
                                       .allow_unregistered()
                                       .run();
-      po::variables_map vm1;
-      po::store(parsed, vm1);
+      po::variables_map vm2;
+      po::store(policyParsed, vm2);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules add", desc);
@@ -274,8 +273,8 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       }
 
       ActionType actionType;
-      if (vm1.count(OPTION_ACTION)) {
-        std::string a = vm1[OPTION_ACTION].as<std::string>();
+      if (vm2.count(OPTION_ACTION)) {
+        std::string a = vm2[OPTION_ACTION].as<std::string>();
         actionType = getActionType(a);
       } else {
         throw po::validation_error(
@@ -284,16 +283,16 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       }
 
       union IpAddress ipaddr4, ipaddr6;
-      if (vm1.count(OPTION_TARGET_4)) {
-        std::string ipt = vm1[OPTION_TARGET_4].as<std::string>();
+      if (vm2.count(OPTION_TARGET_4)) {
+        std::string ipt = vm2[OPTION_TARGET_4].as<std::string>();
         parseIpAddress(ipt, OPTION_TARGET_4, ipaddr4);
       } else {
         throw po::validation_error(
             po::validation_error::kind_t::at_least_one_value_required,
             OPTION_TARGET_4, "");
       }
-      if (vm1.count(OPTION_TARGET_6)) {
-        std::string ipt = vm1[OPTION_TARGET_6].as<std::string>();
+      if (vm2.count(OPTION_TARGET_6)) {
+        std::string ipt = vm2[OPTION_TARGET_6].as<std::string>();
         parseIpAddress(ipt, OPTION_TARGET_6, ipaddr6);
       } else {
         throw po::validation_error(
@@ -317,8 +316,8 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
                                          .options(desc)
                                          .allow_unregistered()
                                          .run();
-      po::variables_map vm1;
-      po::store(ruleParsed, vm1);
+      po::variables_map vm2;
+      po::store(ruleParsed, vm2);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules " + cmd, desc);

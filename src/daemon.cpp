@@ -58,7 +58,7 @@ static void logBasics(const std::string &userName) {
 }
 
 void Daemon::Initialize() {
-  userName = GetUserName();
+  userName = GetCurrentUserName();
   configReader->LoadConfiguration();
   Log::Init(configReader);
   logBasics(userName);

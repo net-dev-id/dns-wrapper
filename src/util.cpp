@@ -69,7 +69,7 @@ int ToEthAddress(const std::string &ethaddr, EthAddress *address) {
   std::string token;
   int i = 0;
   while (std::getline(ss, token, ':')) {
-    address->v[i++] = std::stoi(token, nullptr, 16);
+    address->v[i++] = static_cast<uint8_t>(std::stoi(token, nullptr, 16));
   }
 
   return 1;

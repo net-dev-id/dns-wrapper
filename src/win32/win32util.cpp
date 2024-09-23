@@ -9,15 +9,15 @@
 #include "log.hpp"
 #include "net/netcommon.h"
 
+#include <ws2tcpip.h>
+
 #include <winsock2.h>
 
 #include <windows.h>
 
 #include <Lmcons.h>
 
-#define INET6_ADDRSTRLEN 46
-
-char *GetUserName(void) {
+char *GetCurrentUserName(void) {
   static char userName[UNLEN + 1];
   DWORD len = UNLEN + 1;
   if (!GetUserName(userName, &len)) {
@@ -84,5 +84,5 @@ int IpAddressToString(const union IpAddress &ipaddr, const bool &ipv4,
   }
 
   address = buf;
-  return strlen(t);
+  return static_cast<int>(strlen(t));
 }

@@ -21,7 +21,7 @@ public:
   T v;
 };
 
-char *GetUserName(void);
+char *GetCurrentUserName(void);
 void DumpHex(std::array<uint8_t, MAX_PACKET_SZ>, const std::size_t n);
 std::time_t GetNow();
 IpProtocolVersion GetIpAddressType(const std::string &host);

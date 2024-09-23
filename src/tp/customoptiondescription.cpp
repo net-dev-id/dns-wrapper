@@ -60,7 +60,7 @@ void CustomOptionDescription::checkIfPositional(
     const boost::program_options::positional_options_description
         &positionalDesc) {
   std::string last = "";
-  for (size_t i = 0; i < positionalDesc.max_total_count(); ++i) {
+  for (unsigned i = 0; i < positionalDesc.max_total_count(); ++i) {
     std::string current = positionalDesc.name_for_position(i);
     if (optionID == current) {
       boost::algorithm::erase_all(optionDisplayName, "-");

@@ -20,7 +20,7 @@ void UnixUtil::Die(const std::string &baseMessage, const int exitCode) {
   exit(exitCode);
 }
 
-char *GetUserName(void) {
+char *GetCurrentUserName(void) {
   char *name;
   const uid_t euid = geteuid();
   const struct passwd *pw = getpwuid(euid);
