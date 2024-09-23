@@ -15,14 +15,14 @@
 struct InPacket {
   int Read(RawPacketBuffer *bpb);
 
-  EthAddress EthDestination;
-  EthAddress EthSource;
+  union EthAddress EthDestination;
+  union EthAddress EthSource;
   uint16_t EthProtocol;
 
   bool Ipv4;
 
-  IpAddress IpSource;
-  IpAddress IpDestination;
+  union IpAddress IpSource;
+  union IpAddress IpDestination;
   uint8_t IpProtocol;
 
   Port SourcePort;

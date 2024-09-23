@@ -6,6 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "daemon.hpp"
 #include "net/netcommon.h"
 #include "util.hpp"
 #include <algorithm>
@@ -14,11 +15,8 @@
 #ifdef __linux
 #include <arpa/inet.h>
 #include <ifaddrs.h>
-#include <sys/socket.h>
 #define IF_CLASS ifaddrs
 #else /* WIN32 */
-#include <winsock2.h>
-
 #include <iphlpapi.h>
 
 #include <Windows.h>
@@ -34,7 +32,6 @@
 #include <boost/chrono.hpp>
 #include <boost/format.hpp>
 #include <boost/thread/thread.hpp>
-#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <ctime>
@@ -58,8 +55,10 @@
 using boost::asio::generic::raw_protocol;
 
 DnsServer::DnsServer(boost::asio::io_context &io_context, uint16_t port,
-                     const ConfigReader *configReader)
-    : socket4(io_context), socket6(io_context), configReader(configReader) {
+                     const ConfigReader *configReader,
+                     ShmRuleEngine *ruleEngine)
+    : socket4(io_context), socket6(io_context), configReader(configReader),
+      ruleEngine(ruleEngine) {
   initUpstreamServers();
   startRawSocketScan(io_context, port);
   startDnsListeners(port);
@@ -75,26 +74,24 @@ void DnsServer::initUpstreamServers() {
       continue;
     }
 
-    int af;
     boost::asio::ip::address targetIP;
     bool ipv4;
     UpstreamServerInfo *usi = new UpstreamServerInfo;
     if (server.protocolVersion == IpProtocolVersion::Ipv4) {
-      af = AF_INET;
       targetIP = make_address_v4(server.hostIp);
       ipv4 = true;
       usi->ipv4 = true;
     } else {
-      af = AF_INET6;
       targetIP = make_address_v6(server.hostIp);
       ipv4 = false;
     }
 
-    if (inet_pton(af, server.hostIp.c_str(), &usi->address) != 1) {
+    if (ToIpAddress(server.hostIp, ipv4, &usi->address) != 1) {
       LERROR << "Unable to parse IP address: " << server.hostIp << std::endl;
       delete usi;
       continue;
     }
+
     usi->endpoint = udp::endpoint(targetIP, server.port);
     usi->ipv4 = ipv4;
 
@@ -245,8 +242,8 @@ bool DnsServer::processRequest(DnsPacket &packet, int &res,
     return sent;
   }
 
-  EthAddress ethaddr{};
-  IpAddress ipaddr{};
+  union EthAddress ethaddr{};
+  union IpAddress ipaddr{};
   if (ipv4) {
     std::ranges::copy(endpoint.address().to_v4().to_bytes(), ipaddr.Ipv4v);
   } else {
@@ -261,7 +258,7 @@ bool DnsServer::processRequest(DnsPacket &packet, int &res,
   }
 
   Input input{&packet, this, &endpoint, ipv4, ethaddr, ipaddr};
-  ruleEngine.Evaluate(input);
+  ruleEngine->Evaluate(input);
 
   return sent;
 }
@@ -336,26 +333,27 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
   return sent;
 }
 
-void DnsServer::updateRedirectResponse(DnsPacket &packet) const {
+void DnsServer::updateRedirectResponse(DnsPacket &packet,
+                                       const union IpAddress &target) const {
   packet.SetAsQueryResponse();
   packet.SetAsAuthoritativeAnswer(true);
   packet.SetRecursionAvailable(true);
 
-  packet.SetAnswers([](DnsQuestion *question, DnsRecord *answer) {
+  packet.SetAnswers([&target](DnsQuestion *question, DnsRecord *answer) {
     answer->UpdateFromQuestion(question);
 
     answer->TTL = ONE_HOUR;
     switch (question->Type) {
     case QT_A:
       answer->Len = 4;
-      answer->Address.Ipv4.n = 0;
+      answer->Address.Ipv4.n = target.Ipv4;
       break;
     case QT_AAAA:
       answer->Len = 16;
-      answer->Address.Ipv6.n1 = 0;
-      answer->Address.Ipv6.n2 = 0;
-      answer->Address.Ipv6.n3 = 0;
-      answer->Address.Ipv6.n4 = 0;
+      answer->Address.Ipv6.n1 = target.Ipv6[0];
+      answer->Address.Ipv6.n2 = target.Ipv6[1];
+      answer->Address.Ipv6.n3 = target.Ipv6[2];
+      answer->Address.Ipv6.n4 = target.Ipv6[3];
       break;
     }
   });
@@ -505,7 +503,8 @@ void DnsServer::Resolve(DnsPacket *p, const udp::endpoint *e, const bool i) {
   sendPacket(*p, *e, i);
 }
 
-void DnsServer::Redirect(DnsPacket *p, const udp::endpoint *e, const bool i) {
-  updateRedirectResponse(*p);
+void DnsServer::Redirect(DnsPacket *p, const udp::endpoint *e, const bool i,
+                         const union IpAddress &target) {
+  updateRedirectResponse(*p, target);
   sendPacket(*p, *e, i);
 }

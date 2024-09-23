@@ -14,15 +14,16 @@
 class EthMappings {
 public:
   struct MacMappingRecord {
-    EthAddress ethaddress;
+    union EthAddress ethaddress;
     bool ipv4;
-    IpAddress ipaddress;
+    union IpAddress ipaddress;
     std::time_t time = GetNow();
   };
 
-  bool Add(const EthAddress &ethaddress, const bool &ipv4,
-           const IpAddress &ipaddress);
-  const MacMappingRecord *LookUp(const IpAddress &ipaddress, const bool &ipv4) const;
+  bool Add(const union EthAddress &ethaddress, const bool &ipv4,
+           const union IpAddress &ipaddress);
+  const MacMappingRecord *LookUp(const union IpAddress &ipaddress,
+                                 const bool &ipv4) const;
 
 private:
   MacMappingRecord records[MAX_MAC_IP_MAPPINGS];

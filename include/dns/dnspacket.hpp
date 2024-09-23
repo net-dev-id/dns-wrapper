@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -54,7 +54,7 @@ public:
   void SetRecursionAvailable(const bool &value);
   void SetCheckingDisabled(const bool &value);
   void SetResponseCode(const uint8_t &responseCode);
-  void SetAnswers(void(writeAnswer)(DnsQuestion *, DnsRecord *));
+  void SetAnswers(std::function<void(DnsQuestion *, DnsRecord *)> writeAnswer);
 
   bool HasPsuedoHeader() const;
   uint16_t GetUdpPayloadSize() const;
@@ -72,38 +72,3 @@ private:
   DnsRecord *authorities;
   DnsRecord *additionals;
 };
-
-/*
-The recursive mode occurs when a query with RD set arrives at a server
-which is willing to provide recursive service; the client can verify
-that recursive mode was used by checking that both RA and RD are set in
-the reply.  Note that the name server should never perform recursive
-service unless asked via RD, since this interferes with trouble shooting
-of name servers and their databases.
-
-If recursive service is requested and available, the recursive response
-to a query will be one of the following:
-
-   - The answer to the query, possibly preface by one or more CNAME
-     RRs that specify aliases encountered on the way to an answer.
-   - A name error indicating that the name does not exist.  This
-     may include CNAME RRs that indicate that the original query
-     name was an alias for a name which does not exist.
-   - A temporary error indication.
-
-If recursive service is not requested or is not available, the non-
-recursive response will be one of the following:
-
-   - An authoritative name error indicating that the name does not
-     exist.
-   - A temporary error indication.
-   - Some combination of:
-     RRs that answer the question, together with an indication
-     whether the data comes from a zone or is cached.
-     A referral to name servers which have zones which are closer
-     ancestors to the name than the server sending the reply.
-   - RRs that the name server thinks will prove useful to the
-     requester.
-
-
-*/

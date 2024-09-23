@@ -14,8 +14,8 @@
 
 #define TIMEOUT 5
 
-bool EthMappings::Add(const EthAddress &ethaddress, const bool &ipv4,
-                      const IpAddress &ipaddress) {
+bool EthMappings::Add(const union EthAddress &ethaddress, const bool &ipv4,
+                      const union IpAddress &ipaddress) {
   MacMappingRecord *oldest = nullptr;
   MacMappingRecord *target = nullptr;
   auto now = GetNow();
@@ -50,8 +50,8 @@ bool EthMappings::Add(const EthAddress &ethaddress, const bool &ipv4,
   return false;
 }
 
-const EthMappings::MacMappingRecord *EthMappings::LookUp(const IpAddress &ipaddress,
-                                      const bool &ipv4) const {
+const EthMappings::MacMappingRecord *
+EthMappings::LookUp(const union IpAddress &ipaddress, const bool &ipv4) const {
   for (auto &r : records) {
     if (r.ipv4 == ipv4 &&
         ((ipv4 && ipaddress.Ipv4 == r.ipaddress.Ipv4) ||

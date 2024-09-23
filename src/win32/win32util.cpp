@@ -7,10 +7,15 @@
  */
 
 #include "log.hpp"
+#include "net/netcommon.h"
+
+#include <winsock2.h>
 
 #include <windows.h>
 
 #include <Lmcons.h>
+
+#define INET6_ADDRSTRLEN 46
 
 char *GetUserName(void) {
   static char userName[UNLEN + 1];
@@ -46,4 +51,38 @@ void WinDie(const std::string &baseMessage, const DWORD res,
     LocalFree(buf);
   }
   exit(exitCode);
+}
+
+int ToIpAddress(const std::string &ipaddr, const bool &ipv4,
+                union IpAddress *address) {
+  int af;
+  if (ipv4) {
+    af = AF_INET;
+
+  } else {
+    af = AF_INET6;
+  }
+
+  return inet_pton(af, ipaddr.c_str(), address);
+}
+
+int IpAddressToString(const union IpAddress &ipaddr, const bool &ipv4,
+                      std::string &address) {
+  static char buf[INET6_ADDRSTRLEN + 1];
+  int af;
+  if (ipv4) {
+    af = AF_INET;
+  } else {
+    af = AF_INET6;
+  }
+
+  const char *t = inet_ntop(af, &ipaddr, buf, INET6_ADDRSTRLEN + 1);
+  if (t == nullptr) {
+    LERROR << "Error converting ip address to string: " << WSAGetLastError()
+           << std::endl;
+    return 0;
+  }
+
+  address = buf;
+  return strlen(t);
 }

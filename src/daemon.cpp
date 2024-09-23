@@ -7,13 +7,13 @@
  */
 
 #include "daemon.hpp"
-#include "args.hpp"
 #include "common.h"
 #include "dns/server.hpp"
 #include "log.hpp"
 #include "util.hpp"
 #include "version.h"
 
+#include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
@@ -27,7 +27,7 @@
 Daemon::Daemon()
     : lockOwned(false),
       executionLock(boost::interprocess::open_or_create, DAEMON_NAME),
-      configReader(nullptr) {}
+      configReader(nullptr), ruleEngine(true) {}
 
 Daemon::~Daemon() {
   if (lockOwned) {
@@ -67,7 +67,8 @@ void Daemon::Initialize() {
 
 int Daemon::Start() {
   try {
-    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader);
+    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader, &ruleEngine);
+
     boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);
     signals.async_wait([&](boost::system::error_code ec, int signo) {
       LERROR << "Signal received" << std::endl;

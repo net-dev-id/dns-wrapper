@@ -17,7 +17,7 @@ using boost::asio::ip::udp;
 struct UpstreamServerInfo {
   udp::endpoint endpoint;
   bool ipv4;
-  IpAddress address;
+  union IpAddress address;
   Port port;
   struct {
     uint32_t queries;

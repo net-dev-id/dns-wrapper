@@ -13,14 +13,9 @@
 
 #include "common.h"
 #include "config.hpp"
-
-#define IPV4 "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
-#define IPV6 "[0-9a-eA-E][0-9a-eA-E]?"
+#include "util.hpp"
 
 namespace pt = boost::property_tree;
-
-std::regex ConfigReader::ipRegex4(IPV4 "." IPV4 "." IPV4 "." IPV4);
-std::regex ConfigReader::ipRegex6(IPV6 "(:" IPV6 "){15}");
 
 std::string IniConfigReader::getStringValue(const std::string &key,
                                             const std::string &defValue) {
@@ -45,12 +40,8 @@ void ConfigReader::addServer(const std::string &host, uint16_t port,
     throw new std::invalid_argument("Invalid protocol value");
   }
 
-  IpProtocolVersion ipv;
-  if (std::regex_match(host, ipRegex4)) {
-    ipv = IpProtocolVersion::Ipv4;
-  } else if (std::regex_match(host, ipRegex6)) {
-    ipv = IpProtocolVersion::Ipv6;
-  } else {
+  IpProtocolVersion ipv = GetIpAddressType(host);
+  if (ipv == IpProtocolVersion::none) {
     std::cerr << "Expected value for server is not a valid ip address: " << host
               << std::endl;
     throw new std::invalid_argument("Invalid server value");

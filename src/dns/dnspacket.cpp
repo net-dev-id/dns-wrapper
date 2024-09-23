@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -170,7 +170,8 @@ void DnsPacket::SetResponseCode(const uint8_t &responseCode) {
   header->SetResponseCode(responseCode);
 }
 
-void DnsPacket::SetAnswers(void(writeAnswer)(DnsQuestion *, DnsRecord *)) {
+void DnsPacket::SetAnswers(
+    std::function<void(DnsQuestion *, DnsRecord *)> writeAnswer) {
   if (header->QuestionCount == 0 || !questions) {
     return;
   }

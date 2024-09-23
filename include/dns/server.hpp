@@ -12,9 +12,9 @@
 #include "bookkeeping/peer.hpp"
 #include "bookkeeping/server.hpp"
 #include "config.hpp"
+#include "daemon.hpp"
 #include "dnspacket.hpp"
 #include "net/netcommon.h"
-#include "rule/engine.hpp"
 
 #include <boost/asio/generic/raw_protocol.hpp>
 #include <boost/asio/io_context.hpp>
@@ -43,12 +43,13 @@ struct SocketData {
 class DnsServer {
 public:
   DnsServer(boost::asio::io_context &io_context, uint16_t port,
-            const ConfigReader *configReader);
+            const ConfigReader *configReader, ShmRuleEngine *ruleEngine);
   ~DnsServer();
 
   void Resolve(DnsPacket *p, const udp::endpoint *e, const bool i);
 
-  void Redirect(DnsPacket *p, const udp::endpoint *e, const bool i);
+  void Redirect(DnsPacket *p, const udp::endpoint *e, const bool i,
+                const union IpAddress &target);
 
 private:
   void initUpstreamServers();
@@ -69,14 +70,14 @@ private:
   void sendPacket(const DnsPacket &packet, const udp::endpoint &endpoint,
                   bool ipv4);
   void updateErrorResponse(DnsPacket &packet, const uint8_t &errCode);
-  void updateRedirectResponse(DnsPacket &packet) const;
+  void updateRedirectResponse(DnsPacket &packet,
+                              const union IpAddress &target) const;
 
   void receive4();
   void receive6();
   void receive(SocketData &d);
 
 private:
-  RuleEngine ruleEngine;
   PeerRequests peerRequests;
   EthMappings ethmappings;
 
@@ -89,5 +90,6 @@ private:
   std::vector<SocketData> socketData;
 
   const ConfigReader *configReader;
+  ShmRuleEngine *ruleEngine;
   UpstreamServerInfo *servers;
 };
