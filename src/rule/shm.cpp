@@ -6,13 +6,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "rule/shm.hpp"
 #include "common.h"
+
 #include "dns/server.hpp"
 #include "log.hpp"
 #include "net/netcommon.h"
 #include "rule/common.h"
 #include "rule/input.hpp"
+#include "rule/shm.hpp"
+
 #include <algorithm>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
