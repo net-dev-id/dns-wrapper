@@ -7,13 +7,14 @@
  */
 
 #include "daemon.hpp"
-#include "args.hpp"
 #include "common.h"
 #include "dns/server.hpp"
 #include "log.hpp"
+#include "rule/shm.hpp"
 #include "util.hpp"
 #include "version.h"
 
+#include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
@@ -27,7 +28,7 @@
 Daemon::Daemon()
     : lockOwned(false),
       executionLock(boost::interprocess::open_or_create, DAEMON_NAME),
-      configReader(nullptr) {}
+      configReader(nullptr), ruleEngine(true) {}
 
 Daemon::~Daemon() {
   if (lockOwned) {
@@ -57,17 +58,35 @@ static void logBasics(const std::string &userName) {
          << std::endl;
 }
 
+static void loadRules(const std::string &fileName, ShmRuleEngine &ruleEngine) {
+  std::fstream fs;
+  fs.open(fileName);
+  if (!fs) {
+    LWARNING << "Failed to open rules file: " << fileName << std::endl;
+    LWARNING << "Will continue service without any rules configured"
+             << std::endl;
+    return;
+  }
+
+  fs >> ruleEngine;
+  LINFO << "Successfully read rules from file: " << fileName << std::endl;
+  fs.close();
+}
+
 void Daemon::Initialize() {
-  userName = GetUserName();
+  userName = GetCurrentUserName();
   configReader->LoadConfiguration();
   Log::Init(configReader);
   logBasics(userName);
+  loadRules(configReader->ruleFile, ruleEngine);
   platformInit();
 }
 
 int Daemon::Start() {
   try {
-    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader);
+    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader,
+                        &ruleEngine);
+
     boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);
     signals.async_wait([&](boost::system::error_code ec, int signo) {
       LERROR << "Signal received" << std::endl;

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <ctime>
 #include <random>
+#include <sys/types.h>
 
 #define HASH_SIZE 32
 

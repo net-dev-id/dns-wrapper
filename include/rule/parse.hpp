@@ -8,10 +8,16 @@
 
 #pragma once
 
-#include <string>
+#include "args.hpp"
 
-class UnixUtil {
+#include <boost/program_options.hpp>
+#include <string>
+#include <vector>
+
+namespace po = boost::program_options;
+
+class RuleParser {
 public:
-  [[noreturn]]
-  static void Die(const std::string &baseMessage, const int exitCode);
+  Args::ExitCode Parse(const po::parsed_options &parsed, po::variables_map &vm);
+  bool Parse(const std::vector<std::string> &ruleStrings);
 };

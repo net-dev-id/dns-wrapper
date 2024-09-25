@@ -14,9 +14,11 @@
 #define CONFIG_FILE_PATH "/etc/dnswrapper/config.ini"
 #define LOG_FILE "/var/log/dns-wrapper.log"
 #define PID_FILE "/var/run/dns-wrapper.pid"
+#define RULES_FILE "/etc/dnswrapper/rules.txt"
 #else
 #define CONFIG_FILE_PATH "__WIN_REGISTRY__"
 #define LOG_FILE "c:\\temp\\dns-wrapper.log"
+#define RULES_FILE "c:\\temp\\rules.txt"
 #endif /* WIN32 */
 
 #define MAX_SERVERS 3
@@ -34,3 +36,5 @@
 #define EC_BADCOMMANDLINE 7
 #define EC_FORK 8
 #define EC_INIT_OFFSET 10
+
+#define ETH_ADDR_LEN 6

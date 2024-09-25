@@ -10,6 +10,7 @@
 
 #include "config.hpp"
 #include "log.hpp"
+#include "rule/shm.hpp"
 #include <boost/asio/io_context.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 
@@ -40,5 +41,6 @@ private:
 
 protected:
   ConfigReader *configReader;
+  ShmRuleEngine ruleEngine;
   boost::asio::io_context ioContext;
 };

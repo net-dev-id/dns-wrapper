@@ -1,13 +1,13 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "log.hpp"
 #include "bookkeeping/peer.hpp"
+#include "log.hpp"
 #include <cstdint>
 
 #define MAX_FWD_QUERIES 150
@@ -118,7 +118,6 @@ void logQuery(uint16_t id, const unsigned char *hash) {
 PeerRequests::PeerRequestRecord *PeerRequests::Lookup(uint16_t id,
                                                       void *hash) const {
   PeerRequestRecord *r;
-  logQuery(id, (const unsigned char *)hash);
 
   if (hash) {
     for (r = records; r; r = r->next) {

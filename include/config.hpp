@@ -9,9 +9,9 @@
 #pragma once
 
 #include "log.hpp"
+#include "util.hpp"
 #include <boost/property_tree/ptree.hpp>
 #include <cstdint>
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -19,8 +19,6 @@ enum Protocol {
   Tcp,
   Udp,
 };
-
-enum IpProtocolVersion { Ipv4, Ipv6 };
 
 struct UpstreamServer {
   std::string hostIp;
@@ -39,16 +37,13 @@ public:
   std::string pidFile;
 #endif /* __unix__ */
 
+  std::string ruleFile;
   uint16_t dnsPort;
   uint16_t tcpPort;
 
   std::vector<UpstreamServer> servers;
 
   virtual void LoadConfiguration();
-
-private:
-  static std::regex ipRegex4;
-  static std::regex ipRegex6;
 
 protected:
   void addServer(const std::string &host, uint16_t port,
