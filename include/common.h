@@ -14,7 +14,7 @@
 #define CONFIG_FILE_PATH "/etc/dnswrapper/config.ini"
 #define LOG_FILE "/var/log/dns-wrapper.log"
 #define PID_FILE "/var/run/dns-wrapper.pid"
-#define RULES_FILE "/etc/dnswrapper/rules.txt"
+#define RULES_FILE "/etc/dns-wrapper/rules.txt"
 #else
 #define CONFIG_FILE_PATH "__WIN_REGISTRY__"
 #define LOG_FILE "c:\\temp\\dns-wrapper.log"
