@@ -37,6 +37,7 @@ public:
   std::string pidFile;
 #endif /* __unix__ */
 
+  std::string ruleFile;
   uint16_t dnsPort;
   uint16_t tcpPort;
 

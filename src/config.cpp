@@ -63,6 +63,8 @@ void ConfigReader::LoadConfiguration() {
   pidFile = getStringValue("pidFile", PID_FILE);
 #endif /* __unix__ */
 
+  ruleFile = getStringValue("ruleFile", RULES_FILE);
+
   std::string host = getStringValue("serverIp1", SERVER_IP_1);
   uint16_t port = (uint16_t)getLongValue("serverPort1", DNS_PORT);
   std::string protocol = getStringValue("protocol1", "udp");

@@ -8,8 +8,9 @@
 
 #include "net/netcommon.h"
 #include "util.hpp"
+#include <cstddef>
 
-#define MAX_MAC_IP_MAPPINGS 30
+#define MAX_MAC_IP_MAPPINGS 100
 
 class EthMappings {
 public:
@@ -26,5 +27,6 @@ public:
                                  const bool &ipv4) const;
 
 private:
+  std::size_t count = 0;
   MacMappingRecord records[MAX_MAC_IP_MAPPINGS];
 };

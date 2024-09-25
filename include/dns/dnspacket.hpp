@@ -46,6 +46,8 @@ public:
   bool HasCheckingDisabled() const { return header->GetCheckingDisabled(); }
   uint16_t GetId() const { return header->ID; }
   uint8_t GetResponseCode() const { return header->GetResponseCode(); }
+  uint16_t GetQuestionCount() const { return header->QuestionCount; }
+  uint16_t GetAnswerCount() const { return header->AnswerCount; }
 
   void SetAsQueryResponse();
   void SetAsQueryRequest();

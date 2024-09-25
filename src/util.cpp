@@ -7,6 +7,7 @@
  */
 
 #include "util.hpp"
+#include "common.h"
 #include "net/netcommon.h"
 #include <iomanip>
 #include <iostream>
@@ -73,4 +74,15 @@ int ToEthAddress(const std::string &ethaddr, EthAddress *address) {
   }
 
   return 1;
+}
+
+std::string EthAddressToString(const union EthAddress &ethaddr) {
+  std::stringstream ss;
+  ss << std::hex << std::setfill('0') << std::setw(2) << int(ethaddr.v[0]);
+  for (int i = 1; i < ETH_ADDR_LEN; i++) {
+    ss << ":" << std::hex << std::setfill('0') << std::setw(2)
+       << int(ethaddr.v[i]);
+  }
+
+  return ss.str();
 }

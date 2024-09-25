@@ -7,6 +7,8 @@
  */
 
 #include "net/packet.hpp"
+#include "net/netcommon.h"
+#include <iostream>
 
 #include <algorithm>
 #include <cstdint>
@@ -44,16 +46,16 @@ int InPacket::Read(RawPacketBuffer *bpb) {
   }
 
   std::copy(bpb->buf.begin() + bpb->pos,
-            bpb->buf.begin() + bpb->pos + ETH_HDR_SIZE, EthDestination.v);
+            bpb->buf.begin() + bpb->pos + ETH_ADDR_LEN, EthDestination.v);
   bpb->pos += ETH_ADDR_LEN;
   std::copy(bpb->buf.begin() + bpb->pos,
-            bpb->buf.begin() + bpb->pos + ETH_HDR_SIZE, EthSource.v);
+            bpb->buf.begin() + bpb->pos + ETH_ADDR_LEN, EthSource.v);
   bpb->pos += ETH_ADDR_LEN;
 
   VREAD_U16(EthProtocol, bpb);
 
   for (int i = 0; i < VLAN_MAX_DEPTH; i++) {
-    if (isVlan(EthProtocol)) {
+    if (!isVlan(EthProtocol)) {
       break;
     }
 
@@ -68,7 +70,7 @@ int InPacket::Read(RawPacketBuffer *bpb) {
   // Done processing Ethernet header
 
   if (EthProtocol == ETH_P_IP) {
-    if (bpb->pos + IPV4_HDR_SIZE > bpb->pos) {
+    if (bpb->pos + IPV4_HDR_SIZE > bpb->size) {
       return E_FORMERR;
     }
 
@@ -102,8 +104,9 @@ int InPacket::Read(RawPacketBuffer *bpb) {
      * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
 
-    uint8_t actualHeaderSize = bpb->buf[bpb->pos] & 0x0f;
-    if (bpb->pos + actualHeaderSize > bpb->size) {
+    uint8_t actualHeaderSize = (bpb->buf[bpb->pos] & 0x0f) * 4;
+    if ((bpb->buf[bpb->pos] & 0xf0) != 0x40 || actualHeaderSize < 20 ||
+        bpb->pos + actualHeaderSize > bpb->size) {
       return E_FORMERR;
     }
 
@@ -113,9 +116,11 @@ int InPacket::Read(RawPacketBuffer *bpb) {
     bpb->pos += 2;
     VREAD_U32(IpSource.Ipv4, bpb);
     VREAD_U32(IpDestination.Ipv4, bpb);
+    IpSource.Ipv4 = ntohl(IpSource.Ipv4);
+    IpDestination.Ipv4 = ntohl(IpDestination.Ipv4);
     bpb->pos += actualHeaderSize - IPV4_HDR_SIZE;
   } else if (EthProtocol == ETH_P_IPV6) {
-    if (bpb->pos + IPV6_HDR_SIZE > bpb->pos) {
+    if (bpb->pos + IPV6_HDR_SIZE > bpb->size) {
       return E_FORMERR;
     }
 
@@ -147,20 +152,20 @@ int InPacket::Read(RawPacketBuffer *bpb) {
     bpb->pos += 6;
     VREAD_U8(IpProtocol, bpb);
     bpb->pos += 1;
-    VREAD_U32(IpSource.Ipv6[0], bpb);
-    VREAD_U32(IpSource.Ipv6[1], bpb);
-    VREAD_U32(IpSource.Ipv6[2], bpb);
-    VREAD_U32(IpSource.Ipv6[3], bpb);
-    VREAD_U32(IpDestination.Ipv6[0], bpb);
-    VREAD_U32(IpDestination.Ipv6[1], bpb);
-    VREAD_U32(IpDestination.Ipv6[2], bpb);
-    VREAD_U32(IpDestination.Ipv6[3], bpb);
+    for (int i = 0; i < 4; i++) {
+      VREAD_U32(IpSource.Ipv6[i], bpb);
+      IpSource.Ipv6[i] = ntohl(IpSource.Ipv6[i]);
+    }
+    for (int i = 0; i < 4; i++) {
+      VREAD_U32(IpDestination.Ipv6[i], bpb);
+      IpDestination.Ipv6[i] = ntohl(IpDestination.Ipv6[i]);
+    }
   } else {
     return E_NOTIMP;
   }
 
   if (IpProtocol == IPPROTO_UDP) {
-    if (bpb->pos + UDP_HDR_SIZE > bpb->pos) {
+    if (bpb->pos + UDP_HDR_SIZE > bpb->size) {
       return E_FORMERR;
     }
 
@@ -183,17 +188,4 @@ int InPacket::Read(RawPacketBuffer *bpb) {
   }
 
   return E_NOERROR;
-}
-
-std::ostream &operator<<(std::ostream &stream, [[maybe_unused]] const InPacket &p) {
-  /*
-  if (p.Ipv4) {
-    stream << std::hex << p.IpSource.Ipv4 << ":" << p.SourcePort;
-  } else {
-    stream << p.IpSource.Ipv6v[0] << ":" << p.IpSource.Ipv6v[1] << ":"
-           << p.IpSource.Ipv6v[2] << ":" << p.IpSource.Ipv6v[3] << ":"
-           << p.IpSource.Ipv6v[4] << ":" << p.IpSource.Ipv6v[5];
-  }
-  */
-  return stream;
 }

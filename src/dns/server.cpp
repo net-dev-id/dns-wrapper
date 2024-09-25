@@ -15,6 +15,8 @@
 #ifdef __linux
 #include <arpa/inet.h>
 #include <ifaddrs.h>
+#include <net/ethernet.h>
+#include <netpacket/packet.h>
 #define IF_CLASS ifaddrs
 #else /* WIN32 */
 #include <iphlpapi.h>
@@ -77,6 +79,7 @@ void DnsServer::initUpstreamServers() {
     boost::asio::ip::address targetIP;
     bool ipv4;
     UpstreamServerInfo *usi = new UpstreamServerInfo;
+    usi->displayAddress = server.hostIp;
     if (server.protocolVersion == IpProtocolVersion::Ipv4) {
       targetIP = make_address_v4(server.hostIp);
       ipv4 = true;
@@ -102,22 +105,25 @@ void DnsServer::initUpstreamServers() {
 }
 
 void DnsServer::startRawSocketScan(boost::asio::io_context &io_context,
-                                   const uint16_t &port) {
-  sockaddr_in sockaddr{};
-  sockaddr.sin_family = AF_INET;
-  sockaddr.sin_port = port;
-  sockaddr.sin_addr.s_addr = INADDR_ANY;
-  std::memset(sockaddr.sin_zero, 0, sizeof(sockaddr.sin_zero));
+                                   [[maybe_unused]] const uint16_t &port) {
+  NetInterface<class IF_CLASS> netInterface;
+  for (auto it = netInterface.begin(); it != netInterface.end(); ++it) {
+    sockaddr_ll sockaddr{};
+    sockaddr.sll_family = PF_PACKET;
+    sockaddr.sll_protocol = htons(ETH_P_IP);
+    sockaddr.sll_ifindex = it->Index();
+    sockaddr.sll_hatype = 1;
 
-  raw_protocol::endpoint endpoint(&sockaddr, sizeof(sockaddr), SOCK_DGRAM);
-  SocketData data{
-      socketData.size(), new raw_protocol::socket(io_context), endpoint, {}};
+    raw_protocol::endpoint endpoint(&sockaddr, sizeof(sockaddr), SOCK_RAW);
 
-  raw_protocol protocol(AF_INET, SOCK_RAW);
-  data.socket->open(protocol);
-  data.socket->bind(endpoint);
-  socketData.push_back(data);
-  receive(data);
+    SocketData data{
+        socketData.size(), new raw_protocol::socket(io_context), endpoint, {}};
+
+    raw_protocol protocol(PF_PACKET, htons(ETH_P_ALL));
+    data.socket->open(protocol);
+    socketData.push_back(data);
+    receive(data);
+  }
 }
 
 void DnsServer::startDnsListeners(const uint16_t &port) {
@@ -196,6 +202,16 @@ void DnsServer::receive(boost::system::error_code ec, std::size_t n,
   }
 }
 
+static std::string toDisplayAddress(const bool &ipv4,
+                                    const union IpAddress &ipaddr,
+                                    const union EthAddress &ethaddr) {
+  std::stringstream ss;
+  std::string address;
+  IpAddressToString(ipaddr, ipv4, address);
+  ss << address << " --> " << EthAddressToString(ethaddr);
+  return ss.str();
+}
+
 void DnsServer::receiveRawData(boost::system::error_code ec, std::size_t n,
                                bool ipv4, SocketData &d) {
   if (ec) {
@@ -225,6 +241,12 @@ void DnsServer::receiveRawData(boost::system::error_code ec, std::size_t n,
       return;
     }
 
+    if (bpb.pos + 2 > bpb.size || (bpb.buf[bpb.pos + 2] & 0b10000000) != 0) {
+      // This is not a DNS query
+      LDEBUG << "Skipping DNS query response from mac mappings" << std::endl;
+      return;
+    }
+
     if (!ethmappings.Add(ipacket.EthSource, ipv4, ipacket.IpSource)) {
       LERROR << "Error adding mapping for ethernet address" << std::endl;
     }
@@ -234,7 +256,9 @@ void DnsServer::receiveRawData(boost::system::error_code ec, std::size_t n,
 bool DnsServer::processRequest(DnsPacket &packet, int &res,
                                const udp::endpoint &endpoint, bool ipv4) {
   bool sent = false;
-  LDEBUG << "Incoming packet:" << std::endl << packet << std::endl;
+  LDEBUG << "Incoming packet:: destination: " << endpoint
+         << " Id: " << packet.GetId() << " QC: " << packet.GetQuestionCount()
+         << " AC: " << packet.GetAnswerCount() << std::endl;
 
   res = packet.Validate(PacketType::IncomingRequest);
   if (res != E_NOERROR) {
@@ -242,8 +266,8 @@ bool DnsServer::processRequest(DnsPacket &packet, int &res,
     return sent;
   }
 
-  union EthAddress ethaddr{};
-  union IpAddress ipaddr{};
+  union EthAddress ethaddr {};
+  union IpAddress ipaddr {};
   if (ipv4) {
     std::ranges::copy(endpoint.address().to_v4().to_bytes(), ipaddr.Ipv4v);
   } else {
@@ -254,6 +278,8 @@ bool DnsServer::processRequest(DnsPacket &packet, int &res,
   if (!r) {
     LERROR << "Mac address not found for: " << endpoint << std::endl;
   } else {
+    LDEBUG << "Mac address found: "
+           << toDisplayAddress(ipv4, r->ipaddress, r->ethaddress) << std::endl;
     std::ranges::copy(r->ethaddress.v, ethaddr.v);
   }
 
@@ -267,8 +293,9 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
                                         udp::endpoint &endpoint) {
   bool sent = true;
   const std::time_t now = GetNow();
-  LDEBUG << "Incoming packet [@" << now << "]:" << std::endl
-         << packet << std::endl;
+  LDEBUG << "Incoming packet:: destination: " << endpoint
+         << " Id: " << packet.GetId() << " QC: " << packet.GetQuestionCount()
+         << " AC: " << packet.GetAnswerCount() << std::endl;
 
   UpstreamServerInfo *server;
   for (server = servers; server; server = server->next) {
@@ -300,9 +327,10 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
     server->stats.nosources++;
     // We send request to all configured servers for now. The record might
     // have been removed as we got request from first server that replied.
-    LINFO << "No source request found for reply from " << endpoint << ": "
-          << std::endl
-          << packet << std::endl;
+    LINFO << "No source request found for reply:: destination: " << endpoint
+          << " Id: " << packet.GetId() << " QC: " << packet.GetQuestionCount()
+          << " AC: " << packet.GetAnswerCount() << std::endl;
+
     return sent;
   }
 
@@ -378,14 +406,14 @@ void DnsServer::sendPacket(const DnsPacket &packet,
   }
 
   // DumpHex(responseBuffer.buf, responseBuffer.pos);
-  LDEBUG << "Outgoing packet:" << std::endl << packet << std::endl;
+  LDEBUG << "Outgoing packet:: destination: " << endpoint
+         << " Id: " << packet.GetId() << " QC: " << packet.GetQuestionCount()
+         << " AC: " << packet.GetAnswerCount() << std::endl;
   boost::system::error_code ec;
   if (ipv4) {
-    LDEBUG << "Sending ipv4 data: " << endpoint << std::endl;
     socket4.send_to(boost::asio::buffer(responseBuffer.buf, responseBuffer.pos),
                     endpoint, 0, ec);
   } else {
-    LDEBUG << "Sending ipv6 data: " << endpoint << std::endl;
     socket6.send_to(boost::asio::buffer(responseBuffer.buf, responseBuffer.pos),
                     endpoint, 0, ec);
   }
@@ -494,13 +522,14 @@ void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
   r->sentTo = servers;
   for (auto server = servers; server; server = server->next) {
     server->stats.queries++;
-    sendPacket(packet, endpoint, ipv4);
+    LINFO << "Forwarding request to upstream server: " << server->displayAddress
+          << ":" << server->port << std::endl;
+    sendPacket(packet, server->endpoint, server->ipv4);
   }
 }
 
 void DnsServer::Resolve(DnsPacket *p, const udp::endpoint *e, const bool i) {
   resolve(*p, *e, i);
-  sendPacket(*p, *e, i);
 }
 
 void DnsServer::Redirect(DnsPacket *p, const udp::endpoint *e, const bool i,

@@ -30,3 +30,4 @@ int ToIpAddress(const std::string &ipaddr, const bool &ipv4,
                 union IpAddress *address);
 int IpAddressToString(const union IpAddress &ipaddr, const bool &ipv4,
                       std::string &address);
+std::string EthAddressToString(const union EthAddress &ethaddr);

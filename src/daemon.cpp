@@ -10,6 +10,7 @@
 #include "common.h"
 #include "dns/server.hpp"
 #include "log.hpp"
+#include "rule/shm.hpp"
 #include "util.hpp"
 #include "version.h"
 
@@ -57,11 +58,27 @@ static void logBasics(const std::string &userName) {
          << std::endl;
 }
 
+static void loadRules(const std::string &fileName, ShmRuleEngine &ruleEngine) {
+  std::fstream fs;
+  fs.open(fileName);
+  if (!fs) {
+    LWARNING << "Failed to open rules file: " << fileName << std::endl;
+    LWARNING << "Will continue service without any rules configured"
+             << std::endl;
+    return;
+  }
+
+  fs >> ruleEngine;
+  LINFO << "Successfully read rules from file: " << fileName << std::endl;
+  fs.close();
+}
+
 void Daemon::Initialize() {
   userName = GetCurrentUserName();
   configReader->LoadConfiguration();
   Log::Init(configReader);
   logBasics(userName);
+  loadRules(configReader->ruleFile, ruleEngine);
   platformInit();
 }
 

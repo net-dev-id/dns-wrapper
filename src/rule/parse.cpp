@@ -21,7 +21,9 @@
 #include <boost/program_options/options_description.hpp>
 #include <climits>
 #include <cstddef>
+#include <fstream>
 #include <iostream>
+#include <ostream>
 #include <string>
 
 #define OPTION_HELP "help"
@@ -40,8 +42,10 @@ static void printSubCommandOptions(
           {OPTION_CLEAR, "Clears all rules"},
           {OPTION_LIST, "Lists all rules (default)"},
           {OPTION_POLICY, "Sets the policy to use"},
+#ifndef WIN32
           {OPTION_LOAD, "Loads rule from a file"},
           {OPTION_SAVE, "Saves rules from a file"}},
+#endif /* WIN32 */
       positionalDesc);
 }
 
@@ -58,8 +62,7 @@ static bool parseIpAddress(const std::string &ipa, const std::string &optName,
     ipv4 = false;
     break;
   default:
-    throw po::validation_error(
-        po::validation_error::kind_t::invalid_option_value, optName, ipa);
+    ipv4 = false;
   }
 
   if (ToIpAddress(ipa, ipv4, &ipaddr) != 1) {
@@ -189,6 +192,10 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       if (vm2.count(OPTION_ACTION)) {
         std::string a = vm2[OPTION_ACTION].as<std::string>();
         actionType = getActionType(a, hasTarget);
+      } else {
+        throw po::validation_error(
+            po::validation_error::kind_t::at_least_one_value_required,
+            OPTION_ACTION, "");
       }
 
       bool res;
@@ -306,25 +313,57 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       }
 
       return Args::ExitWithNoError;
+#ifndef WIN32
     } else if (cmd == OPTION_LOAD || cmd == OPTION_SAVE) {
       po::options_description desc("rules " + cmd + " options");
       desc.add_options()(OPTION_HELP ",h", "produce help message")(
-          OPTION_FILE ",f", po::value<std::size_t>(),
+          OPTION_FILE ",f", po::value<std::string>(),
           "file to load/save rules from");
 
-      po::parsed_options addParsed = po::command_line_parser(opts)
-                                         .options(desc)
-                                         .allow_unregistered()
-                                         .run();
+      po::parsed_options parsed = po::command_line_parser(opts)
+                                      .options(desc)
+                                      .allow_unregistered()
+                                      .run();
       po::variables_map vm2;
-      po::store(ruleParsed, vm2);
+      po::store(parsed, vm2);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules " + cmd, desc);
         return Args::ExitWithNoError;
       }
 
+      if (vm2.count(OPTION_FILE)) {
+        std::string fileName = vm2[OPTION_FILE].as<std::string>();
+        std::fstream fs;
+        if (cmd == OPTION_SAVE) {
+          fs.open(fileName, std::ios_base::out);
+        } else {
+          fs.open(fileName, std::ios_base::in);
+        }
+        if (!fs.is_open()) {
+          LERROR << "Failed to open file: " << fileName << std::endl;
+          return Args::ExitWithError;
+        }
+
+        if (cmd == OPTION_SAVE) {
+          fs << engine;
+          LINFO << "Successfully written rules to file: " << fileName
+                << std::endl;
+        } else {
+          fs >> engine;
+          LINFO << "Successfully read rules from file: " << fileName
+                << std::endl;
+        }
+        fs.close();
+        return Args::ExitWithNoError;
+      } else {
+        throw po::validation_error(
+            po::validation_error::kind_t::at_least_one_value_required,
+            OPTION_FILE, "");
+      }
+
       return Args::ExitWithNoError;
+#endif /* WIN32 */
     } else {
       std::cerr << "Error unsupported command: " << cmd << std::endl;
       printSubCommandOptions(rules, &pos);

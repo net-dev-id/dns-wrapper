@@ -10,6 +10,7 @@
 
 #include "net/netcommon.h"
 #include "rule/input.hpp"
+#include "rule/parse.hpp"
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/sync/interprocess_condition.hpp>
@@ -74,6 +75,7 @@ public:
 
   friend std::ostream &operator<<(std::ostream &ostream,
                                   const ShmRuleEngine &engine);
+  friend std::istream &operator>>(std::istream &ostream, ShmRuleEngine &engine);
 
 private:
   Rule nextRule(uint8_t **loc) const;
@@ -87,4 +89,5 @@ private:
 
   boost::interprocess::shared_memory_object shm;
   boost::interprocess::mapped_region region;
+  RuleParser ruleParser;
 };

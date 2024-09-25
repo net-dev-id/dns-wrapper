@@ -10,8 +10,11 @@
 #include "net/if.hpp"
 #include "unix/unixutil.hpp"
 
+#include <cstring>
 #include <ifaddrs.h>
 #include <net/if.h>
+#include <ostream>
+#include <sys/socket.h>
 #include <sys/types.h>
 
 /*
@@ -43,12 +46,6 @@ static ifaddrs *getIfAddrs() {
   return addrs;
 }
 
-template <> Interface<ifaddrs>::~Interface() {
-  if (start) {
-    freeifaddrs(start);
-  }
-}
-
 template <> int Interface<ifaddrs>::Index() const {
   return if_nametoindex(ptr->ifa_name);
 }
@@ -57,19 +54,58 @@ template <> std::string Interface<ifaddrs>::Name() const {
   return ptr->ifa_name;
 }
 
-template <> Interface<ifaddrs> &Interface<ifaddrs>::operator++() {
-  if (ptr) {
-    ptr = ptr->ifa_next;
+template <> std::string Interface<ifaddrs>::Type() const {
+  switch (ptr->ifa_addr->sa_family) {
+  case AF_INET:
+    return "AF_INET";
+  case AF_INET6:
+    return "AF_INET6";
+  case AF_PACKET:
+    return "AF_PACKET";
   }
-  return *this;
+
+  return "UNKNOWN";
 }
 
-template <> Interface<ifaddrs> Interface<ifaddrs>::operator++(int) {
-  if (ptr) {
-    ptr = ptr->ifa_next;
+template <> bool Interface<ifaddrs>::HasIpv4() const {
+  return ptr->ifa_addr->sa_family == AF_INET;
+}
+
+template <> bool Interface<ifaddrs>::HasIpv6() const {
+  return ptr->ifa_addr->sa_family == AF_INET6;
+}
+
+inline static bool skippableInterface(ifaddrs *ptr) {
+  return (0 == std::strcmp(ptr->ifa_name, "lo") ||
+          ptr->ifa_addr->sa_family == AF_PACKET);
+}
+
+inline static ifaddrs *thisOrNextUseful(ifaddrs *ptr) {
+  do {
+    if (!skippableInterface(ptr)) {
+      return ptr;
+    }
+  } while ((ptr = ptr->ifa_next));
+
+  return nullptr;
+}
+
+template <> Interface<ifaddrs> &Interface<ifaddrs>::operator++() {
+  while ((ptr = ptr->ifa_next)) {
+    if (!skippableInterface(ptr)) {
+      break;
+    }
   }
+
   return *this;
 }
 
 template <>
-NetInterface<ifaddrs>::NetInterface() : start(getIfAddrs()), finish(nullptr) {}
+NetInterface<ifaddrs>::NetInterface()
+    : addrs(getIfAddrs()), start(thisOrNextUseful(addrs)), finish(nullptr) {}
+
+template <> NetInterface<ifaddrs>::~NetInterface() {
+  if (addrs) {
+    freeifaddrs(addrs);
+  }
+}

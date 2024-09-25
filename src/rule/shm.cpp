@@ -6,6 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "args.hpp"
 #include "common.h"
 
 #include "dns/server.hpp"
@@ -13,16 +14,21 @@
 #include "net/netcommon.h"
 #include "rule/common.h"
 #include "rule/input.hpp"
+#include "rule/parse.hpp"
 #include "rule/shm.hpp"
+#include "util.hpp"
 
 #include <algorithm>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
 #include <boost/thread/lock_types.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <ostream>
+#include <string>
 
 #define SHM_NAME "shm-" DAEMON_NAME
 
@@ -95,6 +101,7 @@ bool ShmRuleEngine::Evaluate(Input &input) const {
       input.server->Redirect(input.packet, input.endpoint, input.ipv4,
                              r.target->ipaddr);
     }
+    return true;
   }
 
   // No match with any so we will next apply policy
@@ -174,13 +181,13 @@ Rule ShmRuleEngine::nextRule(uint8_t **loc) const {
     break;
   case RuleType::EthAddress:
     eth = reinterpret_cast<union EthAddress *>(*loc);
-    *loc += sizeof(EthAddress);
+    *loc += sizeof(union EthAddress);
     break;
   case RuleType::IpAndEthAddress:
     ipd = reinterpret_cast<IpAddressData *>(*loc);
     *loc += sizeof(IpAddressData);
     eth = reinterpret_cast<union EthAddress *>(*loc);
-    *loc += sizeof(EthAddress);
+    *loc += sizeof(union EthAddress);
     break;
   }
 
@@ -215,7 +222,7 @@ std::size_t ShmRuleEngine::insertRules(const Rule *rules,
 
     if (rules[i].header.ruleType == RuleType::EthAddress ||
         rules[i].header.ruleType == RuleType::IpAndEthAddress) {
-      bytes += sizeof(EthAddress);
+      bytes += sizeof(union EthAddress);
     }
 
     if (rules[i].header.actionType == ActionType::Redirect) {
@@ -263,8 +270,8 @@ std::size_t ShmRuleEngine::insertRules(const Rule *rules,
 
     if (rules[i].header.ruleType == RuleType::EthAddress ||
         rules[i].header.ruleType == RuleType::IpAndEthAddress) {
-      std::memcpy(t, rules[i].eth, sizeof(EthAddress));
-      t += sizeof(EthAddress);
+      std::memcpy(t, rules[i].eth, sizeof(union EthAddress));
+      t += sizeof(union EthAddress);
     }
 
     if (rules[i].header.actionType == ActionType::Redirect) {
@@ -332,7 +339,7 @@ static inline std::ostream &showParam(std::ostream &ostream, const char *what,
 }
 
 std::ostream &operator<<(std::ostream &ostream, const ShmRuleEngine &engine) {
-  ostream << "start" << std::endl;
+  ostream << "# start" << std::endl;
 
   uint8_t *t = engine.ruleData->data;
   for (std::size_t i = 0; i < engine.ruleData->size; i++) {
@@ -352,9 +359,7 @@ std::ostream &operator<<(std::ostream &ostream, const ShmRuleEngine &engine) {
     if (r.header.ruleType == RuleType::EthAddress ||
         r.header.ruleType == RuleType::IpAndEthAddress) {
 
-      showParam(ostream, OPTION_MAC, space)
-          << r.eth->v[0] << ":" << r.eth->v[1] << ":" << r.eth->v[2] << ":"
-          << r.eth->v[3] << ":" << r.eth->v[4] << ":" << r.eth->v[5];
+      showParam(ostream, OPTION_MAC, space) << EthAddressToString(*r.eth);
     }
 
     showParam(ostream, OPTION_ACTION, true)
@@ -369,9 +374,11 @@ std::ostream &operator<<(std::ostream &ostream, const ShmRuleEngine &engine) {
     ostream << " # " << i << std::endl;
   }
 
-  ostream << OPTION_POLICY << " "
-          << (engine.ruleData->policy.action == ActionType::Dns ? "dns"
-                                                                : "redirect");
+  ostream << OPTION_POLICY << " ";
+  showParam(ostream, OPTION_ACTION, true)
+      << " "
+      << (engine.ruleData->policy.action == ActionType::Dns ? "dns"
+                                                            : "redirect");
 
   if (engine.ruleData->policy.action == ActionType::Redirect) {
     std::string address;
@@ -383,7 +390,51 @@ std::ostream &operator<<(std::ostream &ostream, const ShmRuleEngine &engine) {
   }
 
   ostream << std::endl;
-  ostream << "end" << std::endl;
+  ostream << "# end" << std::endl;
 
   return ostream;
+}
+
+#define OPTION_COMMAND "command"
+#define OPTION_SUBARGS "subargs"
+
+std::istream &operator>>(std::istream &istream, ShmRuleEngine &engine) {
+  namespace po = boost::program_options;
+
+  std::string line;
+  while (std::getline(istream, line)) {
+    // Get rid of comment
+    auto loc = line.find("#");
+    if (loc != std::string::npos) {
+      line.erase(line.find("#"));
+    }
+
+    if (line.empty()) {
+      // Skip empty lines;
+      continue;
+    }
+
+    po::options_description desc("Options");
+    desc.add_options()(OPTION_COMMAND, po::value<std::string>(),
+                       "command to execute")(
+        OPTION_SUBARGS, po::value<std::vector<std::string>>(),
+        "Arguments for command");
+    po::positional_options_description pos;
+    pos.add(OPTION_COMMAND, 1).add(OPTION_SUBARGS, -1);
+
+    po::parsed_options parsed =
+        po::command_line_parser(po::split_unix(std::string("rules ") + line))
+            .options(desc)
+            .positional(pos)
+            .allow_unregistered()
+            .run();
+    po::variables_map vm;
+    po::store(parsed, vm);
+
+    if (Args::ExitWithNoError != engine.ruleParser.Parse(parsed, vm)) {
+      LERROR << "Failed parsing line: " << line << std::endl;
+      break;
+    }
+  }
+  return istream;
 }

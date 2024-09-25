@@ -11,28 +11,25 @@
 
 template <class T> class Interface {
 private:
-  T *start, *ptr;
+  T *ptr;
 
 public:
-  Interface(T *addrs) : start(addrs), ptr(addrs) {}
+  Interface(T *addrs) : ptr(addrs) {}
   ~Interface() {}
 
   int Index() const;
   std::string Name() const;
-  T *Start() const { return start; }
-  T *Ptr() const { return ptr; }
-
+  std::string Type() const;
+  bool HasIpv4() const;
+  bool HasIpv6() const;
+  T *Get() { return ptr; }
   Interface<T> &operator++() {
+    ++ptr;
     // prefix - this will be implemented only in specialization
     return *this;
   }
-
-  Interface<T> operator++(int) {
-    // postfix - this will be implemented only in specialization
-    return *this;
-  }
-  bool operator==(const Interface<T> &b) const { return ptr == b.ptr; }
-  bool operator!=(const Interface<T> &b) const { return ptr != b.ptr; }
+  bool operator==(const Interface<T> &b) { return ptr == b.ptr; }
+  bool operator!=(const Interface<T> &b) { return ptr != b.ptr; }
 };
 
 template <class T> class NetInterface {
@@ -45,31 +42,42 @@ public:
     using reference = element_type &;
 
   private:
-    element_type addrs;
+    Interface<T> *interface;
 
   public:
-    Iterator(T *p) : addrs(Interface<T>(p)) {}
-    reference operator*() const { return addrs; }
-    Iterator &operator++() {
-      addrs++;
+    Iterator(T *p) : interface(new Interface<T>(p)) {}
+    ~Iterator() {
+      if (interface) {
+        delete interface;
+      }
+    }
+    Iterator(Iterator &b) { interface = new Interface<T>(b.interface->Get()); }
+    Iterator(Iterator &&b) {
+      interface = b.interface;
+      b.interface = nullptr;
+    }
+    pointer operator->() const { return interface; }
+    reference operator*() const { return *interface; }
+    Iterator &operator++() { // prefix
+      ++(*interface);
       return *this;
     }
-    Iterator operator++(int) {
+    Iterator operator++(int) { // postfix
       Iterator tmp = *this;
-      ++addrs;
+      ++(*this);
       return tmp;
     }
-    bool operator==(const Iterator &b) { return addrs == b.addrs; }
-    bool operator!=(const Iterator &b) { return addrs != b.addrs; }
+    bool operator==(const Iterator &b) { return *interface == *b.interface; }
+    bool operator!=(const Iterator &b) { return *interface != *b.interface; }
   };
 
-  NetInterface() : start(nullptr), finish(nullptr) {}
-
+  NetInterface() : addrs(nullptr), start(nullptr), finish(nullptr) {}
+  ~NetInterface() {}
   Iterator begin() { return start; }
-
   Iterator end() { return finish; }
 
 private:
+  T *addrs;
   Iterator start;
   Iterator finish;
 };

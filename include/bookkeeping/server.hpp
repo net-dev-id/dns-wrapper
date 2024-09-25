@@ -18,6 +18,7 @@ struct UpstreamServerInfo {
   udp::endpoint endpoint;
   bool ipv4;
   union IpAddress address;
+  std::string displayAddress;
   Port port;
   struct {
     uint32_t queries;
