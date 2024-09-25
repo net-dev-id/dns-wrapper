@@ -74,22 +74,22 @@ template <> std::string Interface<IP_ADAPTER_ADDRESSES>::Name() const {
 }
 
 template <> std::string Interface<IP_ADAPTER_ADDRESSES>::Type() const {
-    if (ptr->Ipv4Enabled) {
-        return "AF_INET";
-    }
-    if (ptr->Ipv6Enabled) {
-        return "AF_INET6";
-    }
+  if (ptr->Ipv4Enabled) {
+    return "AF_INET";
+  }
+  if (ptr->Ipv6Enabled) {
+    return "AF_INET6";
+  }
 
-    return "UNKNOWN";
+  return "UNKNOWN";
 }
 
 template <> bool Interface<IP_ADAPTER_ADDRESSES>::HasIpv4() const {
-     return ptr->Ipv4Enabled;
+  return ptr->Ipv4Enabled;
 }
 
 template <> bool Interface<IP_ADAPTER_ADDRESSES>::HasIpv6() const {
-    return ptr->Ipv6Enabled;
+  return ptr->Ipv6Enabled;
 }
 
 template <>
@@ -105,7 +105,7 @@ NetInterface<IP_ADAPTER_ADDRESSES>::NetInterface()
     : addrs(getIfAddrs()), start(addrs), finish(nullptr) {}
 
 template <> NetInterface<IP_ADAPTER_ADDRESSES>::~NetInterface() {
-    if (addrs) {
-        free(addrs);
-    }
+  if (addrs) {
+    free(addrs);
+  }
 }

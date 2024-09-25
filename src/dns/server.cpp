@@ -104,8 +104,9 @@ void DnsServer::initUpstreamServers() {
   }
 }
 
-void DnsServer::startRawSocketScan([[maybe_unused]] boost::asio::io_context &io_context,
-                                   [[maybe_unused]] const uint16_t &port) {
+void DnsServer::startRawSocketScan(
+    [[maybe_unused]] boost::asio::io_context &io_context,
+    [[maybe_unused]] const uint16_t &port) {
 #ifdef __linux
   NetInterface<class IF_CLASS> netInterface;
   for (auto it = netInterface.begin(); it != netInterface.end(); ++it) {

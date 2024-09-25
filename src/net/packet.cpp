@@ -8,7 +8,6 @@
 
 #include "net/packet.hpp"
 #include "net/netcommon.h"
-#include <iostream>
 
 #include <algorithm>
 #include <cstdint>
@@ -23,7 +22,7 @@
 #define ETH_P_8021AD 0x88A8 /* 802.1ad Service VLAN		*/
 #define IPPROTO_UDP 17      /* User Datagram Protocol.  */
 #include <winsock.h>
-#endif                      /* __linux */
+#endif /* __linux */
 
 #define ETH_HDR_SIZE 14
 #define VLAN_HDR_SIZE 4

@@ -51,7 +51,9 @@ public:
         delete _interface;
       }
     }
-    Iterator(Iterator &b) { _interface = new Interface<T>(b._interface->Get()); }
+    Iterator(Iterator &b) {
+      _interface = new Interface<T>(b._interface->Get());
+    }
     Iterator(Iterator &&b) {
       _interface = b._interface;
       b._interface = nullptr;

@@ -318,9 +318,9 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
           "file to load/save rules from");
 
       po::parsed_options lsparsed = po::command_line_parser(opts)
-                                      .options(desc)
-                                      .allow_unregistered()
-                                      .run();
+                                        .options(desc)
+                                        .allow_unregistered()
+                                        .run();
       po::variables_map vm2;
       po::store(lsparsed, vm2);
 
