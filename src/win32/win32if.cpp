@@ -21,6 +21,8 @@
 #define WORKING_BUFFER_SIZE 15000
 #define MAX_TRIES 3
 
+// https://learn.microsoft.com/en-us/windows/win32/api/iptypes/ns-iptypes-ip_adapter_addresses_lh
+
 void Die(const std::string &baseMessage, const int exitCode);
 void WinDie(const std::string &baseMessage, const DWORD res,
             const int exitCode);
@@ -63,18 +65,31 @@ static IP_ADAPTER_ADDRESSES *getIfAddrs() {
   return addrs;
 }
 
-template <> Interface<IP_ADAPTER_ADDRESSES>::~Interface() {
-  if (start) {
-    free(start);
-  }
-}
-
 template <> int Interface<IP_ADAPTER_ADDRESSES>::Index() const {
   return ptr->IfIndex;
 }
 
 template <> std::string Interface<IP_ADAPTER_ADDRESSES>::Name() const {
   return ptr->AdapterName;
+}
+
+template <> std::string Interface<IP_ADAPTER_ADDRESSES>::Type() const {
+    if (ptr->Ipv4Enabled) {
+        return "AF_INET";
+    }
+    if (ptr->Ipv6Enabled) {
+        return "AF_INET6";
+    }
+
+    return "UNKNOWN";
+}
+
+template <> bool Interface<IP_ADAPTER_ADDRESSES>::HasIpv4() const {
+     return ptr->Ipv4Enabled;
+}
+
+template <> bool Interface<IP_ADAPTER_ADDRESSES>::HasIpv6() const {
+    return ptr->Ipv6Enabled;
 }
 
 template <>
@@ -86,14 +101,11 @@ Interface<IP_ADAPTER_ADDRESSES> &Interface<IP_ADAPTER_ADDRESSES>::operator++() {
 }
 
 template <>
-Interface<IP_ADAPTER_ADDRESSES>
-Interface<IP_ADAPTER_ADDRESSES>::operator++(int) {
-  if (ptr) {
-    ptr = ptr->Next;
-  }
-  return *this;
-}
-
-template <>
 NetInterface<IP_ADAPTER_ADDRESSES>::NetInterface()
-    : start(getIfAddrs()), finish(nullptr) {}
+    : addrs(getIfAddrs()), start(addrs), finish(nullptr) {}
+
+template <> NetInterface<IP_ADAPTER_ADDRESSES>::~NetInterface() {
+    if (addrs) {
+        free(addrs);
+    }
+}

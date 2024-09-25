@@ -42,10 +42,8 @@ static void printSubCommandOptions(
           {OPTION_CLEAR, "Clears all rules"},
           {OPTION_LIST, "Lists all rules (default)"},
           {OPTION_POLICY, "Sets the policy to use"},
-#ifndef WIN32
           {OPTION_LOAD, "Loads rule from a file"},
           {OPTION_SAVE, "Saves rules from a file"}},
-#endif /* WIN32 */
       positionalDesc);
 }
 
@@ -313,19 +311,18 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       }
 
       return Args::ExitWithNoError;
-#ifndef WIN32
     } else if (cmd == OPTION_LOAD || cmd == OPTION_SAVE) {
       po::options_description desc("rules " + cmd + " options");
       desc.add_options()(OPTION_HELP ",h", "produce help message")(
           OPTION_FILE ",f", po::value<std::string>(),
           "file to load/save rules from");
 
-      po::parsed_options parsed = po::command_line_parser(opts)
+      po::parsed_options lsparsed = po::command_line_parser(opts)
                                       .options(desc)
                                       .allow_unregistered()
                                       .run();
       po::variables_map vm2;
-      po::store(parsed, vm2);
+      po::store(lsparsed, vm2);
 
       if (vm.count(OPTION_HELP)) {
         Args::PrintSubCommandOptions("rules " + cmd, desc);
@@ -363,7 +360,6 @@ Args::ExitCode RuleParser::Parse(const po::parsed_options &parsed,
       }
 
       return Args::ExitWithNoError;
-#endif /* WIN32 */
     } else {
       std::cerr << "Error unsupported command: " << cmd << std::endl;
       printSubCommandOptions(rules, &pos);

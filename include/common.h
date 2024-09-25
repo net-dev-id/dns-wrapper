@@ -18,6 +18,7 @@
 #else
 #define CONFIG_FILE_PATH "__WIN_REGISTRY__"
 #define LOG_FILE "c:\\temp\\dns-wrapper.log"
+#define RULES_FILE "c:\\temp\\rules.txt"
 #endif /* WIN32 */
 
 #define MAX_SERVERS 3

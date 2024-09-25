@@ -42,24 +42,24 @@ public:
     using reference = element_type &;
 
   private:
-    Interface<T> *interface;
+    Interface<T> *_interface;
 
   public:
-    Iterator(T *p) : interface(new Interface<T>(p)) {}
+    Iterator(T *p) : _interface(new Interface<T>(p)) {}
     ~Iterator() {
-      if (interface) {
-        delete interface;
+      if (_interface) {
+        delete _interface;
       }
     }
-    Iterator(Iterator &b) { interface = new Interface<T>(b.interface->Get()); }
+    Iterator(Iterator &b) { _interface = new Interface<T>(b._interface->Get()); }
     Iterator(Iterator &&b) {
-      interface = b.interface;
-      b.interface = nullptr;
+      _interface = b._interface;
+      b._interface = nullptr;
     }
-    pointer operator->() const { return interface; }
-    reference operator*() const { return *interface; }
+    pointer operator->() const { return _interface; }
+    reference operator*() const { return *_interface; }
     Iterator &operator++() { // prefix
-      ++(*interface);
+      ++(*_interface);
       return *this;
     }
     Iterator operator++(int) { // postfix
@@ -67,8 +67,8 @@ public:
       ++(*this);
       return tmp;
     }
-    bool operator==(const Iterator &b) { return *interface == *b.interface; }
-    bool operator!=(const Iterator &b) { return *interface != *b.interface; }
+    bool operator==(const Iterator &b) { return *_interface == *b._interface; }
+    bool operator!=(const Iterator &b) { return *_interface != *b._interface; }
   };
 
   NetInterface() : addrs(nullptr), start(nullptr), finish(nullptr) {}
