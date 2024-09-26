@@ -110,16 +110,8 @@ void DnsServer::startRawSocketScan(
 #ifdef __linux
   NetInterface<class IF_CLASS> netInterface;
   for (auto it = netInterface.begin(); it != netInterface.end(); ++it) {
-    sockaddr_ll sockaddr{};
-    sockaddr.sll_family = PF_PACKET;
-    sockaddr.sll_protocol = htons(ETH_P_IP);
-    sockaddr.sll_ifindex = it->Index();
-    sockaddr.sll_hatype = 1;
-
-    raw_protocol::endpoint endpoint(&sockaddr, sizeof(sockaddr), SOCK_RAW);
-
     SocketData data{
-        socketData.size(), new raw_protocol::socket(io_context), endpoint, {}};
+        socketData.size(), new raw_protocol::socket(io_context), {}};
 
     raw_protocol protocol(PF_PACKET, htons(ETH_P_ALL));
     data.socket->open(protocol);
@@ -143,8 +135,10 @@ void DnsServer::startDnsListeners(const uint16_t &port) {
 }
 
 void DnsServer::receive(SocketData &d) {
+  raw_protocol::endpoint endpoint;
+
   d.socket->async_receive_from(
-      boost::asio::buffer(d.recvBuffer.buf), d.endpoint,
+      boost::asio::buffer(d.recvBuffer.buf), endpoint,
       [&](boost::system::error_code ec, std::size_t n) {
         d.recvBuffer.pos = 0;
         d.recvBuffer.udp = 0;
