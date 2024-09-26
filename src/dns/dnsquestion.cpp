@@ -90,8 +90,8 @@ int DnsQuestion::Read(BytePacketBuffer *bytePacketBuffer) {
     return code;
   }
 
-  VREAD_U16(Class, bytePacketBuffer);
   VREAD_U16(Type, bytePacketBuffer);
+  VREAD_U16(Class, bytePacketBuffer);
 
   return E_NOERROR;
 }
@@ -145,8 +145,8 @@ int DnsQuestion::Write(BytePacketBuffer *bpb) const {
     return code;
   }
 
-  WRITE_U16(bpb, Class)
   WRITE_U16(bpb, Type)
+  WRITE_U16(bpb, Class)
 
   return E_NOERROR;
 }
