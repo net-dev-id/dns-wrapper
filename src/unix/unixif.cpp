@@ -13,7 +13,6 @@
 #include <cstring>
 #include <ifaddrs.h>
 #include <net/if.h>
-#include <ostream>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -46,15 +45,11 @@ static ifaddrs *getIfAddrs() {
   return addrs;
 }
 
-template <> int Interface<ifaddrs>::Index() const {
-  return if_nametoindex(ptr->ifa_name);
-}
+int Interface::Index() const { return if_nametoindex(ptr->ifa_name); }
 
-template <> std::string Interface<ifaddrs>::Name() const {
-  return ptr->ifa_name;
-}
+std::string Interface::Name() const { return ptr->ifa_name; }
 
-template <> std::string Interface<ifaddrs>::Type() const {
+std::string Interface::Type() const {
   switch (ptr->ifa_addr->sa_family) {
   case AF_INET:
     return "AF_INET";
@@ -67,13 +62,9 @@ template <> std::string Interface<ifaddrs>::Type() const {
   return "UNKNOWN";
 }
 
-template <> bool Interface<ifaddrs>::HasIpv4() const {
-  return ptr->ifa_addr->sa_family == AF_INET;
-}
+bool Interface::HasIpv4() const { return ptr->ifa_addr->sa_family == AF_INET; }
 
-template <> bool Interface<ifaddrs>::HasIpv6() const {
-  return ptr->ifa_addr->sa_family == AF_INET6;
-}
+bool Interface::HasIpv6() const { return ptr->ifa_addr->sa_family == AF_INET6; }
 
 inline static bool skippableInterface(ifaddrs *ptr) {
   return (0 == std::strcmp(ptr->ifa_name, "lo") ||
@@ -90,7 +81,7 @@ inline static ifaddrs *thisOrNextUseful(ifaddrs *ptr) {
   return nullptr;
 }
 
-template <> Interface<ifaddrs> &Interface<ifaddrs>::operator++() {
+Interface &Interface::operator++() {
   while ((ptr = ptr->ifa_next)) {
     if (!skippableInterface(ptr)) {
       break;
@@ -100,11 +91,10 @@ template <> Interface<ifaddrs> &Interface<ifaddrs>::operator++() {
   return *this;
 }
 
-template <>
-NetInterface<ifaddrs>::NetInterface()
+NetInterface::NetInterface()
     : addrs(getIfAddrs()), start(thisOrNextUseful(addrs)), finish(nullptr) {}
 
-template <> NetInterface<ifaddrs>::~NetInterface() {
+NetInterface::~NetInterface() {
   if (addrs) {
     freeifaddrs(addrs);
   }

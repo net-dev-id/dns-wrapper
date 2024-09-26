@@ -28,16 +28,15 @@ void WinDie(const std::string &baseMessage, const DWORD res,
             const int exitCode);
 
 static IP_ADAPTER_ADDRESSES *getIfAddrs() {
-  IP_ADAPTER_ADDRESSES *addrs;
+  PIP_ADAPTER_ADDRESSES addrs = nullptr;
 
   DWORD res = 0;
   unsigned long outBufLen = WORKING_BUFFER_SIZE;
-  PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
   unsigned long flags = GAA_FLAG_INCLUDE_PREFIX;
 
   for (int i = 0; i < MAX_TRIES; i++) {
     addrs = (IP_ADAPTER_ADDRESSES *)malloc(outBufLen);
-    if (pAddresses == NULL) {
+    if (addrs == nullptr) {
       LERROR << "Memory allocation failed for IP_ADAPTER_ADDRESSES struct";
       exit(EC_NOMEM);
     }
@@ -46,7 +45,7 @@ static IP_ADAPTER_ADDRESSES *getIfAddrs() {
 
     if (res == ERROR_BUFFER_OVERFLOW) {
       free(addrs);
-      pAddresses = NULL;
+      addrs = nullptr;
     } else {
       break;
     }
@@ -65,15 +64,11 @@ static IP_ADAPTER_ADDRESSES *getIfAddrs() {
   return addrs;
 }
 
-template <> int Interface<IP_ADAPTER_ADDRESSES>::Index() const {
-  return ptr->IfIndex;
-}
+int Interface::Index() const { return ptr->IfIndex; }
 
-template <> std::string Interface<IP_ADAPTER_ADDRESSES>::Name() const {
-  return ptr->AdapterName;
-}
+std::string Interface::Name() const { return ptr->AdapterName; }
 
-template <> std::string Interface<IP_ADAPTER_ADDRESSES>::Type() const {
+std::string Interface::Type() const {
   if (ptr->Ipv4Enabled) {
     return "AF_INET";
   }
@@ -84,30 +79,21 @@ template <> std::string Interface<IP_ADAPTER_ADDRESSES>::Type() const {
   return "UNKNOWN";
 }
 
-template <> bool Interface<IP_ADAPTER_ADDRESSES>::HasIpv4() const {
-  return ptr->Ipv4Enabled;
-}
+bool Interface::HasIpv4() const { return ptr->Ipv4Enabled; }
 
-template <> bool Interface<IP_ADAPTER_ADDRESSES>::HasIpv6() const {
-  return ptr->Ipv6Enabled;
-}
+bool Interface::HasIpv6() const { return ptr->Ipv6Enabled; }
 
-template <>
-Interface<IP_ADAPTER_ADDRESSES> &Interface<IP_ADAPTER_ADDRESSES>::operator++() {
+Interface &Interface::operator++() {
   if (ptr) {
     ptr = ptr->Next;
   }
   return *this;
 }
 
-#pragma warning( push )
-#pragma warning( disable : 4702)
-template <>
-NetInterface<IP_ADAPTER_ADDRESSES>::NetInterface()
+NetInterface::NetInterface()
     : addrs(getIfAddrs()), start(addrs), finish(nullptr) {}
-#pragma warning( pop )
 
-template <> NetInterface<IP_ADAPTER_ADDRESSES>::~NetInterface() {
+NetInterface::~NetInterface() {
   if (addrs) {
     free(addrs);
   }
