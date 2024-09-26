@@ -12,9 +12,9 @@
 #include "bookkeeping/peer.hpp"
 #include "bookkeeping/server.hpp"
 #include "config.hpp"
-#include "daemon.hpp"
 #include "dnspacket.hpp"
 #include "net/netcommon.h"
+#include "rule/shm.hpp"
 
 #include <boost/asio/generic/raw_protocol.hpp>
 #include <boost/asio/io_context.hpp>
@@ -36,7 +36,6 @@ class RuleEngine;
 struct SocketData {
   std::size_t index;
   raw_protocol::socket *socket;
-  raw_protocol::endpoint endpoint;
   RawPacketBuffer recvBuffer;
 };
 
