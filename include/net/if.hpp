@@ -24,7 +24,6 @@ public:
   bool HasIpv6() const;
   T *Get() { return ptr; }
   Interface<T> &operator++() {
-    ++ptr;
     // prefix - this will be implemented only in specialization
     return *this;
   }

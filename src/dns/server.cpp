@@ -107,18 +107,20 @@ void DnsServer::initUpstreamServers() {
 void DnsServer::startRawSocketScan(
     [[maybe_unused]] boost::asio::io_context &io_context,
     [[maybe_unused]] const uint16_t &port) {
-#ifdef __linux
   NetInterface<class IF_CLASS> netInterface;
   for (auto it = netInterface.begin(); it != netInterface.end(); ++it) {
     SocketData data{
         socketData.size(), new raw_protocol::socket(io_context), {}};
 
+#ifdef __linux
     raw_protocol protocol(PF_PACKET, htons(ETH_P_ALL));
+#else /* WIN32 */
+    raw_protocol protocol(SOCK_RAW, htons(IPPROTO_RAW));
+#endif /* __linux */
     data.socket->open(protocol);
     socketData.push_back(data);
     receive(data);
   }
-#endif /* __linux */
 }
 
 void DnsServer::startDnsListeners(const uint16_t &port) {

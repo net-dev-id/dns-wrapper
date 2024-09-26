@@ -100,9 +100,12 @@ Interface<IP_ADAPTER_ADDRESSES> &Interface<IP_ADAPTER_ADDRESSES>::operator++() {
   return *this;
 }
 
+#pragma warning( push )
+#pragma warning( disable : 4702)
 template <>
 NetInterface<IP_ADAPTER_ADDRESSES>::NetInterface()
     : addrs(getIfAddrs()), start(addrs), finish(nullptr) {}
+#pragma warning( pop )
 
 template <> NetInterface<IP_ADAPTER_ADDRESSES>::~NetInterface() {
   if (addrs) {
