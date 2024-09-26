@@ -7,9 +7,11 @@
 
 # DNS Wrapper Service
 
->>> Note: This service is under development. Watch here for updates <<<
+DNS Wrapper Service is a versatile tool that enhances DNS functionality by wrapping and forwarding requests based on customized rules. It can seamlessly serve as a recursive DNS Server for specific clients or as a redirector for other clients. By matching incoming DNS requests against tailored configurations, it intelligently redirects queries to external DNS or designated hosts. With DNS Wrapper Service, users can effectively manage and optimize DNS traffic flow, ensuring efficient and secure connections.
 
-DNS Wrapper Service is a service that wraps DNS and forwards requests to external DNS based on configured rules. Incoming DNS requests are matched against configured rules. More details will be added soon.
+## Overall functionality
+
+![Flow Diagram](http://www.plantuml.com/plantuml/png/dL7HJi8m57tlLzn7U5aO8b4mIYAQy688ll9IsxkjiMjdUmVkxxsRGuYye5coDhtdd9npxYAI35INLeZk9iHivPGlZSjX-V8A0JzgZ0HPy2KeQz3Hrl57cGyGPGDtkVUvnOGvztEnBun56BH3bAg0K5iS2W2JmU2nOyDg3JnzeWA3GmAfTS0OeMGuHiZD3br7UnW2OnmC6eojH2_YNMRoEg06gSXuTq2nsMyKmEpPXxqC-iSyUS1Fmk2aRKFD3xWDniex3MzIlJEepmTxGyNMKL572AYG7Uc-YyesRVekNf8dSCpEm-Zj3YCJFQIJSJA-7YNfBP-ZASW85OQjEtU1Dd9V6zGceABXHSxKiOF2Hxh8qGcdDPLERv8qcLpr9fmsMNUBv2jnUE1_jqyXskQNcCdQqgdIsbkZcbyRkAJzVpK_5-Tb_Qae5kXoYGMVTMc_0000)
 
 ## Flow daigram
 
@@ -59,6 +61,8 @@ Otherwise cmake along with cl compiler can be used to build it on windows. Speci
 | | | c:\temp\dns-wrapper.log | | |
 | logLevel | string | info | No | Log level (one of the following: trace, debug, info, warning, error, fatal. |
 | dnsPort | number | 53 | No | DNS port to use. |
+| ruleFile | string | /etc/dns-wrapper/rules.txt | No | Rule configuration file. |
+| | | c:\temp\rules.txt | | |
 | pidFile | string | /var/run/dns-wrapper.pid | No | PID file (only applicable on UNIX). |
 | serverIp1 | string | 1.1.1.1 | No | Primary DNS Server |
 | serverPort1 | number | 53 | No | DNS port to be used for Primary DNS Server. |
@@ -99,6 +103,81 @@ To create service execute as (ADMIN user): `sc create dns-wrapper-service Displa
 Once service is created as per previous step, start Windows services (services.msc) and click on start for `DNS Wrapper Service`.
 
 ![Screenshot](doc/screenshots/WindowsServiceScreenshot.png "Screenshot")
+
+# Running Service and configuring rules
+
+## Starting the daemon service
+Starting the daemon service: 
+![Screenshot](doc/screenshots/001.png "Starting service")
+
+## Help about command line options
+Help regarding options can be accessed using --help command line option:
+
+![Screenshot](doc/screenshots/002.png "--help")
+
+![Screenshot](doc/screenshots/002a.png "rules --help")
+
+![Screenshot](doc/screenshots/002b.png "rules add --help")
+
+## Listing configured rules and actions
+
+![Screenshot](doc/screenshots/003.png)
+
+## Clearing configured rules and actions
+
+![Screenshot](doc/screenshots/004.png)
+
+As you can see policy action remains unchanged. There has to be a policy action configured always. You can change it but not delete it altogether
+
+## Dig command with policy set to redirect with no rules
+
+![Screenshot](doc/screenshots/005.png)
+
+Since there is no rule configured, DNS resolution happens using the configured default policy. For the record configured default policy has target set to 0.0.0.0. It can very well be any other IP address.
+
+## Dig command with rule set to dns for specific IP address
+
+Lets first set a rule as follows:
+
+![Screenshot](doc/screenshots/006.png)
+
+The corresponding dig command output is as follows:
+
+![Screenshot](doc/screenshots/007.png)
+
+Note the above dig command was executed from IP address 192.168.1.13. Since the rule is set to DNS the DNS query is resolved using the configured DNS.
+
+## Lets delete the rule created above run dig command again
+
+![Screenshot](doc/screenshots/008.png)
+
+![Screenshot](doc/screenshots/009.png)
+
+## Dig command with rule set to a specific MAC address
+
+![Screenshot](doc/screenshots/010.png)
+
+![Screenshot](doc/screenshots/011.png)
+
+In this case if DNS query comes from the machine with the above MAC address, it is resolved using configured DNS. For DNS query coming from any other client, the default policy kicks in.
+
+## Dig command with rule set to a specific IP and MAC address
+
+![Screenshot](doc/screenshots/012.png)
+
+![Screenshot](doc/screenshots/013.png)
+
+Both IP address and MAC address must match from that of incoming DNS query for rule to come into effect.
+
+## You can configure as many rules as you want (within an upper bound as defined in code)
+
+![Screenshot](doc/screenshots/014.png)
+
+## Saving rules and policy to a file
+
+![Screenshot](doc/screenshots/015.png)
+
+These saved rules and policy can be loaded at any time using the load subcommand. Further the corresponding config file parameter can be configured to load rules at service startup.
 
 # Testing Service
 
