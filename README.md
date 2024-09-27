@@ -214,10 +214,12 @@ Name                                           Type   TTL   Section    IPAddress
 google.com                                     A      275   Answer     142.250.194.46
 ```
 
-# Known Limitations
+# Future/Planned features
 
 1. Macaddress based rule matching is not implemented on Windows.
 2. Conflicts, and inconsistencies between rules, actions and policies are not validated. Duplicate rules or inconsistent rules will lead to undesirable results.
+3. TCP Support
+4. Rule can include query domain.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
