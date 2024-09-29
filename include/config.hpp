@@ -29,6 +29,9 @@ struct UpstreamServer {
 
 class ConfigReader {
 public:
+  ConfigReader() = default;
+  virtual ~ConfigReader() {}
+
   bool logToConsoleAlso;
   std::string logFile;
   LogLevel logLevel;

@@ -7,17 +7,18 @@
  */
 
 #include "args.hpp"
+#include "config.hpp"
 #include "daemon.hpp"
+#include <memory>
 
 class UnixDaemon : public Daemon {
 public:
   UnixDaemon() : pidFileCreated(false) {
-    configReader = new IniConfigReader(Args::Get()->configFile);
+    configReader = std::make_unique<IniConfigReader>(Args::Get()->configFile);
   }
   virtual ~UnixDaemon() {
     LTRACE << "Removing pid file" << std::endl;
     removePid();
-    delete (IniConfigReader *)configReader;
   }
 
 private:

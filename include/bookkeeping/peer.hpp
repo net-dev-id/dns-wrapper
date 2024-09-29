@@ -11,6 +11,7 @@
 #include <boost/asio/ip/udp.hpp>
 #include <cstdint>
 #include <ctime>
+#include <memory>
 #include <random>
 #include <sys/types.h>
 
@@ -33,7 +34,7 @@ public:
       udp::endpoint endpoint;
       bool ipv4;
       uint16_t originalId;
-      PeerSource *next;
+      std::unique_ptr<PeerSource> next;
     } source;
 
     // null means free. In future we will not send to all servers
@@ -46,7 +47,7 @@ public:
     std::time_t forwardTimestamp;
     unsigned char hash[HASH_SIZE];
     bool fromTimedOut;
-    PeerRequestRecord *next;
+    std::unique_ptr<PeerRequestRecord> next;
 
     bool HasTimedOut() const;
   };
@@ -75,7 +76,7 @@ public:
 private:
   std::mt19937 rng;
   std::uniform_int_distribution<uint16_t> distribute;
-  PeerRequestRecord *records;
-  PeerRequestRecord::PeerSource *sources;
+  std::unique_ptr<PeerRequestRecord> records;
+  std::unique_ptr<PeerRequestRecord::PeerSource> sources;
   uint16_t sourceCount;
 };

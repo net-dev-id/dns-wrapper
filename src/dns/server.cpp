@@ -6,11 +6,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "args.hpp"
 #include "net/netcommon.h"
 #include "util.hpp"
 #include <algorithm>
 #include <boost/asio/generic/raw_protocol.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/smart_ptr/make_unique.hpp>
+#include <memory>
+#include <utility>
 #ifdef __linux
 #include <arpa/inet.h>
 #include <net/ethernet.h>
@@ -30,10 +34,8 @@
 #include <boost/chrono.hpp>
 #include <boost/format.hpp>
 #include <boost/thread/thread.hpp>
-#include <cstdint>
 #include <cstring>
 #include <ctime>
-#include <ostream>
 
 #include "bookkeeping/peer.hpp"
 #include "bookkeeping/server.hpp"
@@ -41,7 +43,6 @@
 #include "dns/dnspacket.hpp"
 #include "dns/server.hpp"
 #include "log.hpp"
-#include "net/if.hpp"
 #include "net/packet.hpp"
 #include "rule/input.hpp"
 #include "tp/sha256.hpp"
@@ -65,8 +66,6 @@ DnsServer::DnsServer(boost::asio::io_context &io_context, uint16_t port,
 void DnsServer::initUpstreamServers() {
   using namespace boost::asio::ip;
 
-  servers = nullptr;
-  UpstreamServerInfo **t = &servers;
   for (auto &server : configReader->servers) {
     if (server.protocol == Protocol::Tcp) {
       continue;
@@ -74,7 +73,8 @@ void DnsServer::initUpstreamServers() {
 
     boost::asio::ip::address targetIP;
     bool ipv4;
-    UpstreamServerInfo *usi = new UpstreamServerInfo;
+    std::unique_ptr<UpstreamServerInfo> usi =
+        std::make_unique<UpstreamServerInfo>();
     usi->displayAddress = server.hostIp;
     if (server.protocolVersion == IpProtocolVersion::Ipv4) {
       targetIP = make_address_v4(server.hostIp);
@@ -87,28 +87,28 @@ void DnsServer::initUpstreamServers() {
 
     if (ToIpAddress(server.hostIp, ipv4, &usi->address) != 1) {
       LERROR << "Unable to parse IP address: " << server.hostIp << std::endl;
-      delete usi;
       continue;
     }
 
     usi->endpoint = udp::endpoint(targetIP, server.port);
     usi->ipv4 = ipv4;
-
-    usi->next = nullptr;
-    *t = usi;
-    t = &usi->next;
+    servers.push_back(std::move(usi));
   }
 }
 
 void DnsServer::startRawSocketScan(
     [[maybe_unused]] boost::asio::io_context &io_context,
     [[maybe_unused]] const uint16_t &port) {
-#ifdef __linux
-  SocketData data{socketData.size(), new raw_protocol::socket(io_context), {}};
+  if (!Args::Get()->useRawSockets) {
+    return;
+  }
 
+#ifdef __linux
+  std::unique_ptr<SocketData> updata = std::make_unique<SocketData>(io_context);
+  SocketData *data = updata.get();
   raw_protocol protocol(PF_PACKET, htons(ETH_P_ALL));
-  data.socket->open(protocol);
-  socketData.push_back(data);
+  data->socket.open(protocol);
+  socketData.push_back(std::move(updata));
   receive(data);
 #endif /* __linux */
 }
@@ -126,16 +126,19 @@ void DnsServer::startDnsListeners(const uint16_t &port) {
   receive6();
 }
 
-void DnsServer::receive(SocketData &d) {
-  raw_protocol::endpoint endpoint;
-
-  d.socket->async_receive_from(
-      boost::asio::buffer(d.recvBuffer.buf), endpoint,
-      [&](boost::system::error_code ec, std::size_t n) {
-        d.recvBuffer.pos = 0;
-        d.recvBuffer.udp = 0;
-        d.recvBuffer.size = n;
-        receiveRawData(ec, n, true, d);
+void DnsServer::receive(SocketData *d) {
+  d->socket.async_receive_from(
+      boost::asio::buffer(d->recvBuffer.buf), d->endpoint,
+      [&, d](boost::system::error_code ec, [[maybe_unused]] std::size_t n) {
+        if (ec) {
+          LERROR << "Error calling async_receive_from raw socket: "
+                 << ec.message() << std::endl;
+        } else {
+          d->recvBuffer.pos = 0;
+          d->recvBuffer.udp = 0;
+          d->recvBuffer.size = n;
+          receiveRawData(ec, n, true, d);
+        }
         receive(d);
       });
 }
@@ -143,9 +146,6 @@ void DnsServer::receive(SocketData &d) {
 DnsServer::~DnsServer() {
   socket4.close();
   socket6.close();
-  for (auto &s : socketData) {
-    s.socket->close();
-  }
 }
 
 void DnsServer::receive(boost::system::error_code ec, std::size_t n,
@@ -202,19 +202,18 @@ static std::string toDisplayAddress(const bool &ipv4,
 }
 
 void DnsServer::receiveRawData(boost::system::error_code ec, std::size_t n,
-                               bool ipv4, SocketData &d) {
+                               bool ipv4, SocketData *d) {
   if (ec) {
     LERROR << "Error calling async_receive_from [" << ipv4
            << "]: " << ec.message() << std::endl;
     // boost::this_thread::sleep_for(
     //     boost::chrono::milliseconds(THREAD_SLEEP_AFTER_FAIL));
   } else {
-    RawPacketBuffer &bpb = d.recvBuffer;
-    bpb.pos = 0;
-    bpb.size = n;
+    d->recvBuffer.pos = 0;
+    d->recvBuffer.size = n;
 
     InPacket ipacket;
-    int res = ipacket.Read(&bpb);
+    int res = ipacket.Read(&d->recvBuffer);
 
     if (res == E_NOTIMP) {
       return;
@@ -230,7 +229,8 @@ void DnsServer::receiveRawData(boost::system::error_code ec, std::size_t n,
       return;
     }
 
-    if (bpb.pos + 2 > bpb.size || (bpb.buf[bpb.pos + 2] & 0b10000000) != 0) {
+    if (d->recvBuffer.pos + 2 > d->recvBuffer.size ||
+        (d->recvBuffer.buf[d->recvBuffer.pos + 2] & 0b10000000) != 0) {
       // This is not a DNS query
       LDEBUG << "Skipping DNS query response from mac mappings" << std::endl;
       return;
@@ -286,9 +286,10 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
          << " Id: " << packet.GetId() << " QC: " << packet.GetQuestionCount()
          << " AC: " << packet.GetAnswerCount() << std::endl;
 
-  UpstreamServerInfo *server;
-  for (server = servers; server; server = server->next) {
-    if (server->endpoint == endpoint) {
+  UpstreamServerInfo *server = nullptr;
+  for (auto &s : servers) {
+    if (s->endpoint == endpoint) {
+      server = s.get();
       break;
     }
   }
@@ -329,17 +330,18 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
   }
 
   /* calculate modified moving average of server latency */
-  if (server->stats.Latency == 0)
+  if (server->stats.Latency == 0) {
     server->stats.MMA = (now - r->forwardTimestamp) * 128; /* init */
-  else
+  } else {
     server->stats.MMA += now - r->forwardTimestamp - server->stats.Latency;
+  }
   /* denominator controls how many queries we average over. */
   server->stats.Latency = server->stats.MMA / 128;
 
   // Send reply
   packet.SetRecursionAvailable(true);
 
-  for (auto source = &r->source; source; source = source->next) {
+  for (auto source = &r->source; source; source = source->next.get()) {
     LDEBUG << "Endpoint: " << endpoint << ", " << source->ipv4 << std::endl;
     packet.SetId(source->originalId);
     sendPacket(packet, source->endpoint, source->ipv4);
@@ -440,7 +442,7 @@ static void addSource(PeerRequests::PeerRequestRecord::PeerSource *s,
 
 void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
                         bool ipv4) {
-  if (!servers) {
+  if (servers.empty()) {
     LWARNING << "No upstream server found: " << packet << std::endl;
     return;
   }
@@ -460,7 +462,7 @@ void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
   if (r) { // A upstream query for this already exists
     if (!r->HasTimedOut()) {
       auto s = &r->source;
-      for (; s; s = s->next) {
+      for (; s; s = s->next.get()) {
         if (s->ipv4 == ipv4 && s->originalId == packet.GetId() &&
             s->endpoint == endpoint) {
           break;
@@ -483,8 +485,9 @@ void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
           packet.SetResponseCode(E_REFUSED);
           sendPacket(packet, endpoint, ipv4);
         } else {
-          s->next = r->source.next;
-          r->source.next = s;
+          s->next = std::move(r->source.next);
+          r->source.next =
+              std::unique_ptr<PeerRequests::PeerRequestRecord::PeerSource>(s);
           addSource(s, packet, endpoint, ipv4);
         }
 
@@ -508,8 +511,8 @@ void DnsServer::resolve(DnsPacket &packet, const udp::endpoint &endpoint,
     r->flags = fwdFlags;
   }
 
-  r->sentTo = servers;
-  for (auto server = servers; server; server = server->next) {
+  for (auto &server : servers) {
+    r->sentTo = server.get();
     server->stats.queries++;
     LINFO << "Forwarding request to upstream server: " << server->displayAddress
           << ":" << server->port << std::endl;

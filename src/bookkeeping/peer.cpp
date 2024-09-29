@@ -9,6 +9,8 @@
 #include "bookkeeping/peer.hpp"
 #include "log.hpp"
 #include <cstdint>
+#include <memory>
+#include <utility>
 
 #define MAX_FWD_QUERIES 150
 #define TIMEOUT 10 /* drop UDP queries after TIMEOUT seconds */
@@ -39,11 +41,11 @@ void PeerRequests::FreePeerRequestRecord(PeerRequests::PeerRequestRecord *r) {
 
   // Essentially once source remains with record and others are added to
   // PeerRequests::source for future use
-  for (last = r->source.next; last && last->next; last = last->next)
+  for (last = r->source.next.get(); last && last->next; last = last->next.get())
     ;
   if (last) {
-    last->next = sources;
-    sources = r->source.next;
+    last->next = std::move(sources);
+    sources = std::move(r->source.next);
   }
 
   r->source.next = nullptr;
@@ -58,7 +60,7 @@ PeerRequests::GetNewRecord(const std::time_t &now, bool force) {
 
   /* look for free records, garbage collect old records and count number in
    * use by our server-group. */
-  for (r = records; r; r = r->next) {
+  for (r = records.get(); r; r = r->next.get()) {
     if (!r->sentTo)
       target = r;
     else {
@@ -94,8 +96,8 @@ PeerRequests::GetNewRecord(const std::time_t &now, bool force) {
     target->fromTimedOut = false;
     target->source.next = nullptr;
     target->sentTo = nullptr;
-    target->next = records;
-    records = target;
+    target->next = std::move(records);
+    records = std::unique_ptr<PeerRequestRecord>(target);
   }
 
   if (target) {
@@ -120,7 +122,7 @@ PeerRequests::PeerRequestRecord *PeerRequests::Lookup(uint16_t id,
   PeerRequestRecord *r;
 
   if (hash) {
-    for (r = records; r; r = r->next) {
+    for (r = records.get(); r; r = r->next.get()) {
       logQuery(r->newId, r->hash);
       if (r->sentTo && r->newId == id &&
           (memcmp(hash, r->hash, HASH_SIZE) == 0)) {
@@ -139,7 +141,7 @@ PeerRequests::LookupByQuery(void *hash, unsigned int flags,
   logQuery(0, (const unsigned char *)hash);
 
   if (hash) {
-    for (f = records; f; f = f->next)
+    for (f = records.get(); f; f = f->next.get())
       if (f->sentTo && (f->flags & flagmask) == flags &&
           std::memcmp(hash, f->hash, HASH_SIZE) == 0)
         return f;
@@ -152,7 +154,7 @@ PeerRequests::PeerRequestRecord::PeerSource *
 PeerRequests::GetNewPeerSource(const std::time_t &now) {
   PeerRequests::PeerRequestRecord::PeerSource *s = nullptr;
   if (!sources && sourceCount < MAX_FWD_QUERIES) {
-    sources = new PeerRequests::PeerRequestRecord::PeerSource;
+    sources = std::make_unique<PeerRequests::PeerRequestRecord::PeerSource>();
     sourceCount++;
     sources->next = nullptr;
   } else {
@@ -160,8 +162,8 @@ PeerRequests::GetNewPeerSource(const std::time_t &now) {
   }
 
   if (sources) {
-    s = sources;
-    sources = sources->next;
+    s = sources.get();
+    sources = std::move(sources->next);
     s->next = nullptr;
   }
 
@@ -174,7 +176,7 @@ uint16_t PeerRequests::GetNewId() {
   while (1) {
     ret = distribute(rng);
     bool found = false;
-    for (auto r = records; r; r = r->next) {
+    for (auto r = records.get(); r; r = r->next.get()) {
       if (r->sentTo && r->newId == ret) {
         found = true;
         break;

@@ -10,7 +10,6 @@
 // doctest definitions. For builds with this disabled, e.g. code shipped to
 // users, this can be left out.
 #include "args.hpp"
-#include "daemon.hpp"
 #include "log.hpp"
 #include <ostream>
 

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024 Neeraj Jakhar
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -9,6 +9,7 @@
 #include "dns/dnsrecord.hpp"
 #include "dns/dnscommon.hpp"
 #include <cstdint>
+#include <memory>
 #include <ostream>
 
 void DnsRecord::UpdateFromQuestion(const DnsQuestion *question) {
