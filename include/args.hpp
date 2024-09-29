@@ -50,4 +50,5 @@ public:
 
   std::string configFile;
   bool daemonMode;
+  bool useRawSockets;
 };

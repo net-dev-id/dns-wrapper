@@ -32,6 +32,4 @@ struct UpstreamServerInfo {
   } stats;
   time_t forwardtime;
   int forwardcount;
-
-  UpstreamServerInfo *next;
 };

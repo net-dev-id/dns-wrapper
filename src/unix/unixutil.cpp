@@ -10,8 +10,11 @@
 #include "log.hpp"
 #include "net/netcommon.h"
 #include <arpa/inet.h>
+#include <cstring>
 #include <pwd.h>
 #include <sys/socket.h>
+
+#define UNLEN 63
 
 void UnixUtil::Die(const std::string &baseMessage, const int exitCode) {
   char *errMesssage = strerror(errno);
@@ -21,17 +24,17 @@ void UnixUtil::Die(const std::string &baseMessage, const int exitCode) {
 }
 
 char *GetCurrentUserName(void) {
-  char *name;
+  static char userName[UNLEN + 1];
   const uid_t euid = geteuid();
   const struct passwd *pw = getpwuid(euid);
   if (pw) {
-    name = strdup(pw->pw_name);
+    strncpy(userName, pw->pw_name, UNLEN);
   } else {
-    if (asprintf(&name, "%u", euid) < 0)
+    if (sprintf(userName, "%u", euid) < 0)
       return NULL;
   }
 
-  return name;
+  return userName;
 }
 
 int ToIpAddress(const std::string &ipaddr, const bool &ipv4,

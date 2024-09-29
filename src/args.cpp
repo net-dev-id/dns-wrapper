@@ -11,12 +11,14 @@
 #include "rule/parse.hpp"
 #include "tp/optionprinter.hpp"
 
+#include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <iostream>
 #include <string>
 
 #define OPTION_HELP "help"
 #define OPTION_CONFIG_FILE "config-file"
+#define OPTION_USE_RAW_SOCKETS "use-raw-sockets"
 #define OPTION_COMMAND "command"
 #define OPTION_SUBARGS "subargs"
 #define OPTION_START "start"
@@ -89,7 +91,12 @@ Args::ExitCode Args::Init(int argc, char *argv[]) {
       if (cmd == OPTION_START) {
         po::options_description start("start options");
         start.add_options()(OPTION_HELP ",h", "produce help message")(
-            OPTION_DAEMON ",-d", "run in daemon mode (as background service) ");
+            OPTION_DAEMON ",-d", "run in daemon mode (as background service)")(
+            OPTION_UNLOCK, "Unlock service before running. Useful if prior run "
+                           "of service crashed.")(
+            OPTION_USE_RAW_SOCKETS, po::value<bool>(),
+            "Enables/disables use of raw sockets. If disable mac address based "
+            "rules will not function.");
         std::vector<std::string> opts =
             po::collect_unrecognized(parsed.options, po::include_positional);
 
@@ -105,6 +112,20 @@ Args::ExitCode Args::Init(int argc, char *argv[]) {
           _args->daemonMode = true;
         } else {
           _args->daemonMode = false;
+        }
+
+        if (vm.count(OPTION_USE_RAW_SOCKETS)) {
+          _args->useRawSockets = vm[OPTION_USE_RAW_SOCKETS].as<bool>();
+        } else {
+#ifdef __linux
+          _args->useRawSockets = true;
+#else  /* WIN32 */
+          _args->useRawSockets = false;
+#endif /* __linux */
+        }
+
+        if (vm.count(OPTION_UNLOCK)) {
+          boost::interprocess::named_mutex::remove(DAEMON_NAME);
         }
 
       } else if (cmd == OPTION_UNLOCK) {

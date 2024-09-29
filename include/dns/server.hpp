@@ -24,6 +24,7 @@
 #include <boost/system/detail/error_code.hpp>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #define ONE_HOUR 1 * 60 * 60;
@@ -34,8 +35,11 @@ using boost::asio::ip::udp;
 class RuleEngine;
 
 struct SocketData {
-  std::size_t index;
-  raw_protocol::socket *socket;
+  SocketData(boost::asio::io_context &ioContext)
+      : socket(ioContext), endpoint{}, recvBuffer{} {}
+
+  raw_protocol::socket socket;
+  raw_protocol::endpoint endpoint;
   RawPacketBuffer recvBuffer;
 };
 
@@ -58,7 +62,7 @@ private:
 
   void receive(boost::system::error_code ec, std::size_t, bool ipv4);
   void receiveRawData(boost::system::error_code ec, std::size_t, bool ipv4,
-                      SocketData &d);
+                      SocketData *d);
 
   bool processRequest(DnsPacket &packet, int &res,
                       const udp::endpoint &endpoint, bool ipv4);
@@ -74,7 +78,7 @@ private:
 
   void receive4();
   void receive6();
-  void receive(SocketData &d);
+  void receive(SocketData *d);
 
 private:
   PeerRequests peerRequests;
@@ -86,9 +90,9 @@ private:
   udp::socket socket6;
   udp::endpoint endpoint6;
   BytePacketBuffer recvBuffer6;
-  std::vector<SocketData> socketData;
+  std::vector<std::unique_ptr<SocketData>> socketData;
 
   const ConfigReader *configReader;
   ShmRuleEngine *ruleEngine;
-  UpstreamServerInfo *servers;
+  std::list<std::unique_ptr<UpstreamServerInfo>> servers;
 };
