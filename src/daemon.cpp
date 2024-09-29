@@ -76,7 +76,7 @@ static void loadRules(const std::string &fileName, ShmRuleEngine &ruleEngine) {
 void Daemon::Initialize() {
   userName = GetCurrentUserName();
   configReader->LoadConfiguration();
-  Log::Init(configReader);
+  Log::Init(configReader.get());
   logBasics(userName);
   loadRules(configReader->ruleFile, ruleEngine);
   platformInit();
@@ -84,7 +84,7 @@ void Daemon::Initialize() {
 
 int Daemon::Start() {
   try {
-    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader,
+    DnsServer dnsServer(ioContext, configReader->dnsPort, configReader.get(),
                         &ruleEngine);
 
     boost::asio::signal_set signals(ioContext, SIGINT, SIGTERM);

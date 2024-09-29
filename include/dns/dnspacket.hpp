@@ -11,6 +11,7 @@
 #include "dnsheader.hpp"
 #include "dnsrecord.hpp"
 #include <cstdint>
+#include <memory>
 
 class DnsPacket : DnsObject {
 public:
@@ -18,22 +19,7 @@ public:
       : header(nullptr), questions(nullptr), answers(nullptr),
         authorities(nullptr), additionals(nullptr) {}
 
-  virtual ~DnsPacket() {
-    if (questions)
-      delete[] questions;
-
-    if (answers)
-      delete[] answers;
-
-    if (authorities)
-      delete[] authorities;
-
-    if (additionals)
-      delete[] additionals;
-
-    if (header)
-      delete header;
-  }
+  virtual ~DnsPacket() {}
 
   int Read(BytePacketBuffer *bpb);
   int Validate(PacketType pt) const;
@@ -68,9 +54,9 @@ public:
   friend std::ostream &operator<<(std::ostream &stream, const DnsPacket &);
 
 private:
-  DnsHeader *header;
-  DnsQuestion *questions;
-  DnsRecord *answers;
-  DnsRecord *authorities;
-  DnsRecord *additionals;
+  std::unique_ptr<DnsHeader> header;
+  std::unique_ptr<DnsQuestion[]> questions;
+  std::unique_ptr<DnsRecord[]> answers;
+  std::unique_ptr<DnsRecord[]> authorities;
+  std::unique_ptr<DnsRecord[]> additionals;
 };

@@ -30,7 +30,7 @@ public:
   static ExitCode Init(int argc, char *argv[]);
   static Args *Get() {
     if (_args == nullptr) {
-      throw new std::runtime_error("Arguments not initialized");
+      throw std::runtime_error("Arguments not initialized");
     }
 
     return _args;

@@ -13,6 +13,7 @@
 #include "rule/shm.hpp"
 #include <boost/asio/io_context.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
+#include <memory>
 
 class Daemon {
 public:
@@ -40,7 +41,7 @@ private:
   std::string userName;
 
 protected:
-  ConfigReader *configReader;
+  std::unique_ptr<ConfigReader> configReader;
   ShmRuleEngine ruleEngine;
   boost::asio::io_context ioContext;
 };

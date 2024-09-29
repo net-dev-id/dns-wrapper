@@ -37,14 +37,14 @@ void ConfigReader::addServer(const std::string &host, uint16_t port,
   if (protocol != "udp" && protocol != "tcp") {
     std::cerr << "Expected value for protocol is udp or tcp, provided value: "
               << protocol << std::endl;
-    throw new std::invalid_argument("Invalid protocol value");
+    throw std::invalid_argument("Invalid protocol value");
   }
 
   IpProtocolVersion ipv = GetIpAddressType(host);
   if (ipv == IpProtocolVersion::none) {
     std::cerr << "Expected value for server is not a valid ip address: " << host
               << std::endl;
-    throw new std::invalid_argument("Invalid server value");
+    throw std::invalid_argument("Invalid server value");
   }
 
   std::cout << "Upstream server identified as: " << protocol << "://" << host

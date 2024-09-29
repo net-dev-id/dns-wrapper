@@ -17,4 +17,7 @@ void ServiceInit(const HANDLE stopEvent) {
 
 void ServiceStart() { daemon->Start(); }
 
-void ServiceStop() { daemon->Stop(); }
+void ServiceStop() {
+  daemon->Stop();
+  delete daemon;
+}

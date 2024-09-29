@@ -330,10 +330,11 @@ bool DnsServer::processUpstreamResponse(DnsPacket &packet, int &res,
   }
 
   /* calculate modified moving average of server latency */
-  if (server->stats.Latency == 0)
+  if (server->stats.Latency == 0) {
     server->stats.MMA = (now - r->forwardTimestamp) * 128; /* init */
-  else
+  } else {
     server->stats.MMA += now - r->forwardTimestamp - server->stats.Latency;
+  }
   /* denominator controls how many queries we average over. */
   server->stats.Latency = server->stats.MMA / 128;
 

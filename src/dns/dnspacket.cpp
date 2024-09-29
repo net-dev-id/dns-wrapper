@@ -11,10 +11,11 @@
 #include "log.hpp"
 #include "tp/sha256.hpp"
 #include <cstdint>
+#include <memory>
 
 #define _READ_RECORD(what, class, field, typer)                                \
   if (header && header->what##Count > 0) {                                     \
-    field = new Dns##class[header->what##Count];                               \
+    field = std::make_unique<Dns##class[]>(header->what##Count);               \
     for (int i = 0; i < header->what##Count; i++) {                            \
       typer;                                                                   \
       code = field[i].Read(bpb);                                               \
@@ -30,7 +31,7 @@
 #define READ_QUESTION(what, field) _READ_RECORD(what, what, field, ;)
 
 int DnsPacket::Read(BytePacketBuffer *bpb) {
-  header = new DnsHeader;
+  header = std::make_unique_for_overwrite<DnsHeader>();
   int code = header->Read(bpb);
   if (code != E_NOERROR) {
     return code;
@@ -176,9 +177,9 @@ void DnsPacket::SetAnswers(
     return;
   }
 
-  answers = new DnsRecord[header->QuestionCount];
+  answers = std::make_unique<DnsRecord[]>(header->QuestionCount);
   for (int i = 0; i < header->QuestionCount; i++) {
-    writeAnswer(questions + i, answers + i);
+    writeAnswer(&questions[i], &answers[i]);
   }
 
   header->AnswerCount = header->QuestionCount;
